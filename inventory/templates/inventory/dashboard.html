@@ -1,0 +1,239 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+    <h2>Master Inventory: <span class="text-primary">{{ current_location.name }}</span></h2>
+    <div>
+        <a href="{% url 'select_building' current_location.id %}" class="btn btn-primary me-3 shadow-sm border border-dark">
+            ➕ Add / Update Stock
+        </a>
+        
+        <button class="btn btn-success me-2 shadow-sm">📥 Export to Excel</button>
+        <button class="btn btn-danger shadow-sm">📄 Export to PDF</button>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4 border-0 bg-light">
+    <div class="card-body">
+        <form method="GET" action="" id="filterForm">
+            
+            <h6 class="text-muted mb-3">📍 Location Filters</h6>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Location</label>
+                    <select class="form-select bg-white" disabled>
+                        <option>{{ current_location.name }} (Locked)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Building</label>
+                    <select class="form-select bg-white" name="building" id="buildingSelect">
+                        <option value="">All Buildings</option>
+                        {% for b in buildings %}
+                            <option value="{{ b.id }}" {% if request.GET.building == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Floor</label>
+                    <select class="form-select bg-white" name="floor" id="floorSelect">
+                        <option value="">All Floors</option>
+                        {% for f in floors %}
+                            <option value="{{ f.id }}" data-building="{{ f.building.id }}" {% if request.GET.floor == f.id|stringformat:"s" %}selected{% endif %}>{{ f.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Room</label>
+                    <select class="form-select bg-white" name="room" id="roomSelect">
+                        <option value="">All Rooms</option>
+                        {% for r in rooms %}
+                            <option value="{{ r.id }}" data-floor="{{ r.floor.id }}" {% if request.GET.room == r.id|stringformat:"s" %}selected{% endif %}>{{ r.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <h6 class="text-muted mb-3 mt-4">📦 Item & Date Filters</h6>
+            <div class="row mb-3">
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Category</label>
+                    <select class="form-select bg-white" name="category" id="categorySelect">
+                        <option value="">All Categories</option>
+                        {% for c in categories %}
+                            <option value="{{ c.id }}" {% if request.GET.category == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Sub-Category</label>
+                    <select class="form-select bg-white" name="sub_category" id="subCategorySelect">
+                        <option value="">All Sub-Categories</option>
+                        {% for sc in sub_categories %}
+                            <option value="{{ sc.id }}" data-category="{{ sc.category.id }}" {% if request.GET.sub_category == sc.id|stringformat:"s" %}selected{% endif %}>{{ sc.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Search Item</label>
+                    <input type="text" class="form-control bg-white" name="search_name" value="{{ request.GET.search_name }}" placeholder="e.g. Jug">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Date From</label>
+                    <input type="date" class="form-control bg-white" name="start_date" value="{{ request.GET.start_date }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Date To</label>
+                    <input type="date" class="form-control bg-white" name="end_date" value="{{ request.GET.end_date }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-1">
+                    <button type="submit" class="btn btn-primary w-50">Filter</button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-50">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0 align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="py-3 px-4">Image</th>
+                        <th class="py-3">Date</th>
+                        <th class="py-3">Item Details</th>
+                        <th class="py-3">Exact Location</th>
+                        <th class="py-3 text-center">Qty</th>
+                        <th class="py-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in transactions %}
+                    <tr>
+                        <td class="px-4">
+                            {% if txn.item.catalog_image %}
+                                <img src="{{ txn.item.catalog_image.url }}" alt="Item Image" class="rounded shadow-sm" style="width: 60px; height: 60px; object-fit: cover;">
+                            {% else %}
+                                <div class="bg-secondary rounded text-white d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; opacity: 0.2;">
+                                    <small>No Img</small>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold text-muted">{{ txn.date_recorded|date:"M d, Y" }}</td>
+                        <td>
+                            <strong>{{ txn.item.name }}</strong>
+                            {% if txn.item.brand %}<br><small class="text-muted">{{ txn.item.brand }}</small>{% endif %}
+                            <br><span class="badge bg-light text-dark border">{{ txn.item.sub_category.name }}</span>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ txn.room.floor.building.name }} &rarr;</small><br>
+                            <strong>{{ txn.room.name }}</strong>
+                        </td>
+                        <td class="text-center fs-5 fw-bold">{{ txn.quantity }}</td>
+                        <td>
+                            {% if txn.transaction_type == 'RECEIPT' %}
+                                <span class="badge bg-success">Received</span>
+                            {% elif txn.transaction_type == 'DAMAGE' %}
+                                <span class="badge bg-danger">Damaged</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Transferred</span>
+                            {% endif %}
+                            {% if txn.remarks %}<br><small class="text-muted">{{ txn.remarks }}</small>{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <h5>No inventory found matching these filters.</h5>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Spatial Elements
+        const buildingSelect = document.getElementById('buildingSelect');
+        const floorSelect = document.getElementById('floorSelect');
+        const roomSelect = document.getElementById('roomSelect');
+        
+        // Category Elements
+        const categorySelect = document.getElementById('categorySelect');
+        const subCategorySelect = document.getElementById('subCategorySelect');
+
+        // Store original options
+        const allFloors = Array.from(floorSelect.options);
+        const allRooms = Array.from(roomSelect.options);
+        const allSubCategories = Array.from(subCategorySelect.options);
+
+        function filterSpatialDropdowns() {
+            const selectedBuilding = buildingSelect.value;
+            const selectedFloor = floorSelect.value;
+
+            floorSelect.innerHTML = '';
+            allFloors.forEach(option => {
+                if (option.value === "" || option.dataset.building === selectedBuilding || selectedBuilding === "") {
+                    floorSelect.appendChild(option);
+                }
+            });
+
+            roomSelect.innerHTML = '';
+            allRooms.forEach(option => {
+                if (selectedFloor !== "") {
+                    if (option.value === "" || option.dataset.floor === selectedFloor) roomSelect.appendChild(option);
+                } else if (selectedBuilding !== "") {
+                    const isRoomInBuilding = Array.from(floorSelect.options).some(f => f.value === option.dataset.floor);
+                    if (option.value === "" || isRoomInBuilding) roomSelect.appendChild(option);
+                } else {
+                    roomSelect.appendChild(option);
+                }
+            });
+        }
+
+        function filterCategoryDropdowns() {
+            const selectedCategory = categorySelect.value;
+            
+            subCategorySelect.innerHTML = '';
+            allSubCategories.forEach(option => {
+                // Show it if it's the blank option, OR if it matches the category, OR if no category is selected
+                if (option.value === "" || option.dataset.category === selectedCategory || selectedCategory === "") {
+                    subCategorySelect.appendChild(option);
+                }
+            });
+        }
+
+        // Event Listeners
+        buildingSelect.addEventListener('change', function() {
+            floorSelect.value = ""; 
+            roomSelect.value = "";
+            filterSpatialDropdowns();
+        });
+
+        floorSelect.addEventListener('change', function() {
+            roomSelect.value = "";
+            filterSpatialDropdowns();
+        });
+
+        categorySelect.addEventListener('change', function() {
+            subCategorySelect.value = ""; // Reset sub-category when parent changes
+            filterCategoryDropdowns();
+        });
+
+        // Run on load
+        filterSpatialDropdowns();
+        filterCategoryDropdowns();
+        
+        // Retain selections from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.get('floor')) floorSelect.value = urlParams.get('floor');
+        if(urlParams.get('room')) roomSelect.value = urlParams.get('room');
+        if(urlParams.get('sub_category')) subCategorySelect.value = urlParams.get('sub_category');
+    });
+</script>
+{% endblock %}

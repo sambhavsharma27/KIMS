@@ -1,0 +1,69 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="bg-light p-3 rounded mb-4 shadow-sm">
+    <ol class="breadcrumb mb-0 fs-5">
+        <li class="breadcrumb-item fw-bold text-primary">{{ location.name }}</li>
+        <li class="breadcrumb-item"><a href="{% url 'select_floor' building.id %}" class="text-decoration-none text-secondary">{{ building.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'select_room' floor.id %}" class="text-decoration-none text-secondary">{{ floor.name }}</a></li>
+        <li class="breadcrumb-item active text-dark fw-bold" aria-current="page">{{ room.name }}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Current Ledger: <span class="text-primary">{{ room.name }}</span></h2>
+    <a href="{% url 'update_stock' room.id %}" class="btn btn-success btn-lg shadow-sm">
+        + Add / Update Stock Here
+    </a>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="py-3 px-4">Date Logged</th>
+                        <th class="py-3">Item Name</th>
+                        <th class="py-3">Category</th>
+                        <th class="py-3">Type</th>
+                        <th class="py-3 text-center">Quantity</th>
+                        <th class="py-3">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in transactions %}
+                    <tr>
+                        <td class="px-4 align-middle">{{ txn.date_recorded|date:"M d, Y" }}</td>
+                        <td class="align-middle fw-bold">{{ txn.item.name }}
+                            {% if txn.item.brand %}
+                                <br><small class="text-muted fw-normal">{{ txn.item.brand }}</small>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">{{ txn.item.sub_category.name }}</td>
+                        <td class="align-middle">
+                            {% if txn.transaction_type == 'RECEIPT' %}
+                                <span class="badge bg-success">Received</span>
+                            {% elif txn.transaction_type == 'DAMAGE' %}
+                                <span class="badge bg-danger">Damaged</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Transferred</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle text-center fs-5 fw-bold">{{ txn.quantity }}</td>
+                        <td class="align-middle text-muted">{{ txn.remarks|default:"--" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <h4>No items have been logged in this room yet.</h4>
+                            <p>Click the green button above to add the first item!</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

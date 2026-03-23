@@ -1,0 +1,43 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="bg-light p-3 rounded mb-4 shadow-sm">
+    <ol class="breadcrumb mb-0 fs-5">
+        <li class="breadcrumb-item fw-bold text-primary">{{ location.name }}</li>
+        
+        {% if building %}
+            <li class="breadcrumb-item"><a href="{% url 'select_floor' building.id %}" class="text-decoration-none text-secondary">{{ building.name }}</a></li>
+        {% endif %}
+        
+        {% if floor %}
+            <li class="breadcrumb-item"><a href="{% url 'select_room' floor.id %}" class="text-decoration-none text-secondary">{{ floor.name }}</a></li>
+        {% endif %}
+    </ol>
+</nav>
+
+<h3 class="mb-4 text-muted">{{ step_name }}</h3>
+
+<div class="row">
+    {% for item in options %}
+    <div class="col-md-4 mb-4">
+        <a href="{% url next_url_name item.id %}" class="text-decoration-none text-dark">
+            <div class="card h-100 shadow-sm transition-card border-0 bg-white" style="cursor: pointer;">
+                <div class="card-body text-center p-5">
+                    <h1 class="display-3 mb-3 text-primary">🏢</h1>
+                    <h4 class="card-title">{{ item.name }}</h4>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <h5 class="text-muted">Nothing has been added here yet. (Please add it in the Admin Panel)</h5>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    .transition-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .transition-card:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; border: 2px solid #0d6efd !important;}
+</style>
+{% endblock %}
