@@ -8,11 +8,7 @@ from django.db.models.functions import Coalesce
 
 
 # ==========================================
-# 1. THE MASTER DASHBOARD (WITH FILTERS)
-# ==========================================
-@login_required
-# ==========================================
-# 1. THE MASTER DASHBOARD (WITH FILTERS)
+# 1. THE MASTER DASHBOARD (WITH FILTERS & LIVE MATH)
 # ==========================================
 @login_required
 def dashboard_view(request):
@@ -26,7 +22,7 @@ def dashboard_view(request):
         locations = Location.objects.filter(is_active=True)
 
     if location:
-        transactions = InventoryTransaction.objects.filter(room__floor__building__location=location).order_by('-date_recorded')
+        transactions = InventoryTransaction.objects.filter(room__floor__building__location=location)
         buildings = Building.objects.filter(location=location)
         floors = Floor.objects.filter(building__location=location)
         rooms = Room.objects.filter(floor__building__location=location)
@@ -34,7 +30,7 @@ def dashboard_view(request):
         transactions = InventoryTransaction.objects.none()
         buildings = floors = rooms = []
 
-    # NEW: Catch the Sub-Category and Search Name from the form
+    # Catch the filters from the form
     b_id = request.GET.get('building')
     f_id = request.GET.get('floor')
     r_id = request.GET.get('room')
@@ -44,15 +40,42 @@ def dashboard_view(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
-    # Apply the filters
+    # 1. Build dynamic spatial/date filters for the Math Engine
+    math_filters = Q()
+    if location: math_filters &= Q(inventorytransaction__room__floor__building__location=location)
+    if b_id: math_filters &= Q(inventorytransaction__room__floor__building_id=b_id)
+    if f_id: math_filters &= Q(inventorytransaction__room__floor_id=f_id)
+    if r_id: math_filters &= Q(inventorytransaction__room_id=r_id)
+    if start_date: math_filters &= Q(inventorytransaction__date_recorded__gte=start_date)
+    if end_date: math_filters &= Q(inventorytransaction__date_recorded__lte=end_date)
+
+    # 2. Apply existing filters to the raw transactions (Your original code!)
     if b_id: transactions = transactions.filter(room__floor__building_id=b_id)
     if f_id: transactions = transactions.filter(room__floor_id=f_id)
     if r_id: transactions = transactions.filter(room_id=r_id)
     if c_id: transactions = transactions.filter(item__sub_category__category_id=c_id)
     if sc_id: transactions = transactions.filter(item__sub_category_id=sc_id)
-    if search_name: transactions = transactions.filter(item__name__icontains=search_name) # Searches for partial matches!
+    if search_name: transactions = transactions.filter(item__name__icontains=search_name)
     if start_date: transactions = transactions.filter(date_recorded__gte=start_date)
     if end_date: transactions = transactions.filter(date_recorded__lte=end_date)
+
+    # 3. Apply item-specific filters (Category, Search) to the Item query itself
+    item_base_filters = Q()
+    if c_id: item_base_filters &= Q(sub_category__category_id=c_id)
+    if sc_id: item_base_filters &= Q(sub_category_id=sc_id)
+    if search_name: item_base_filters &= Q(name__icontains=search_name)
+
+    # 4. THE LIVE MATH ENGINE (Now respecting all your dropdown filters!)
+    master_inventory = Item.objects.filter(item_base_filters).distinct().annotate(
+        total_received=Coalesce(Sum('inventorytransaction__quantity', filter=math_filters & Q(inventorytransaction__transaction_type='RECEIPT')), 0),
+        total_damaged=Coalesce(Sum('inventorytransaction__quantity', filter=math_filters & Q(inventorytransaction__transaction_type='DAMAGE')), 0),
+        total_transferred=Coalesce(Sum('inventorytransaction__quantity', filter=math_filters & Q(inventorytransaction__transaction_type='TRANSFER')), 0),
+    ).annotate(
+        current_stock=F('total_received') - F('total_damaged') - F('total_transferred')
+    ).filter(
+        # Hide items that have 0 history in the selected building/room
+        Q(total_received__gt=0) | Q(total_damaged__gt=0) | Q(total_transferred__gt=0)
+    ).order_by('-current_stock')
 
     context = {
         'locations': locations,
@@ -61,11 +84,11 @@ def dashboard_view(request):
         'floors': floors,
         'rooms': rooms,
         'categories': Category.objects.all(),
-        'sub_categories': SubCategory.objects.all(), # NEW: Sending Sub-Categories to HTML
-        'transactions': transactions,
+        'sub_categories': SubCategory.objects.all(),
+        'transactions': transactions.order_by('-date_recorded')[:50], # Keep a feed of the last 50 actions
+        'master_inventory': master_inventory, # NEW: Passing the math to HTML!
     }
     return render(request, 'inventory/dashboard.html', context)
-
 
 # ==========================================
 # 2. SMART FORM (WITH IMAGE UPLOADS & SANITIZER)
@@ -217,3 +240,32 @@ def room_ledger(request, room_id):
         'recent_activity': recent_activity
     }
     return render(request, 'inventory/room_ledger.html', context)
+
+
+# ==========================================
+# 4. LIGHTNING-FAST QUICK UPDATES
+# ==========================================
+@login_required
+def quick_update_stock(request, room_id, item_id):
+    room = get_object_or_404(Room, id=room_id)
+    item = get_object_or_404(Item, id=item_id)
+
+    if request.method == 'POST':
+        transaction_type = request.POST.get('transaction_type')
+        quantity = request.POST.get('quantity')
+        remarks = request.POST.get('remarks')
+
+        # Create the new transaction instantly
+        InventoryTransaction.objects.create(
+            item=item,
+            room=room,
+            transaction_type=transaction_type,
+            quantity=quantity,
+            remarks=remarks
+        )
+        
+        messages.success(request, f"Quick Update: {quantity}x {item.name} marked as {transaction_type}.")
+        return redirect('room_ledger', room_id=room.id)
+
+    # If someone tries to just visit this URL directly, kick them back to the ledger
+    return redirect('room_ledger', room_id=room.id)
