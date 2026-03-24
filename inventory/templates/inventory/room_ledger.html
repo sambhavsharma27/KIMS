@@ -34,8 +34,15 @@
                     </thead>
                     <tbody>
                         {% for item in live_items %}
-                        <tr style="cursor: pointer;" class="item-row">
-                            <td class="px-4">
+                        <tr style="cursor: pointer;" class="item-row table-hover-shadow" 
+                            data-item-id="{{ item.id }}" 
+                            data-item-name="{{ item.name }}" 
+                            data-item-stock="{{ item.current_stock }}"
+                            data-item-brand="{{ item.brand|default:'N/A' }}"
+                            data-item-img="{% if item.catalog_image %}{{ item.catalog_image.url }}{% else %}none{% endif %}"
+                            onclick="openQuickUpdateModal(this)">
+                            
+                            <td class="px-4 py-3">
                                 <div class="d-flex align-items-center">
                                     {% if item.catalog_image %}
                                         <img src="{{ item.catalog_image.url }}" class="rounded shadow-sm me-3" style="width: 50px; height: 50px; object-fit: cover;">
@@ -46,6 +53,23 @@
                                         <strong class="fs-6">{{ item.name }}</strong>
                                         <br><span class="badge bg-light text-dark border">{{ item.sub_category.name }}</span>
                                     </div>
+                                </div>
+
+                                <div id="specs-html-{{ item.id }}" class="d-none">
+                                    {% if item.specifications %}
+                                        <table class="table table-sm table-bordered mt-3 mb-0 bg-white">
+                                            <tbody>
+                                            {% for key, val in item.specifications.items %}
+                                                <tr>
+                                                    <th class="bg-light text-muted small w-50 py-1">{{ key }}</th>
+                                                    <td class="small py-1 fw-bold">{{ val }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% else %}
+                                        <p class="text-muted small mt-2 mb-0 fst-italic">No custom specifications added.</p>
+                                    {% endif %}
                                 </div>
                             </td>
                             <td class="text-center fw-bold text-success fs-5">+{{ item.total_received }}</td>
@@ -91,4 +115,102 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="quickUpdateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">📦 Item Details & Update</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-0">
+                <div class="row g-0">
+                    
+                    <div class="col-md-6 p-4 bg-light border-end">
+                        <div class="text-center mb-3">
+                            <img id="modalItemImg" src="" class="rounded shadow-sm d-none" style="width: 120px; height: 120px; object-fit: cover;">
+                        </div>
+                        <h4 id="modalItemName" class="text-primary fw-bold text-center mb-1"></h4>
+                        <p class="text-center text-muted small mb-3">Brand: <strong id="modalItemBrand" class="text-dark"></strong></p>
+                        
+                        <h6 class="fw-bold text-muted border-bottom pb-2">Specifications</h6>
+                        <div id="modalItemSpecs"></div>
+                    </div>
+
+                    <div class="col-md-6 p-4">
+                        <form id="quickUpdateForm" method="POST" action="">
+                            {% csrf_token %}
+                            
+                            <div class="alert alert-info py-2 mb-4 shadow-sm border-0 text-center">
+                                Live Stock: <strong id="modalItemStock" class="fs-4 d-block"></strong>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-muted">What happened?</label>
+                                <select class="form-select border-dark shadow-sm" name="transaction_type" required>
+                                    <option value="RECEIPT">🟢 Received More (+)</option>
+                                    <option value="DAMAGE">🔴 Damaged/Broken (-)</option>
+                                    <option value="TRANSFER">🟠 Transferred Out (-)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-muted">How many?</label>
+                                <input type="number" class="form-control border-dark shadow-sm" name="quantity" min="1" value="1" required>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold small text-muted">Remarks (Optional)</label>
+                                <input type="text" class="form-control" name="remarks" placeholder="e.g. Dropped while cleaning">
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">Save Update</button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openQuickUpdateModal(rowElement) {
+        // 1. Grab all the data from the row
+        const itemId = rowElement.getAttribute('data-item-id');
+        const itemName = rowElement.getAttribute('data-item-name');
+        const itemStock = rowElement.getAttribute('data-item-stock');
+        const itemBrand = rowElement.getAttribute('data-item-brand');
+        const itemImg = rowElement.getAttribute('data-item-img');
+        const roomId = "{{ room.id }}"; 
+
+        // 2. Populate the text data
+        document.getElementById('modalItemName').innerText = itemName;
+        document.getElementById('modalItemStock').innerText = itemStock;
+        document.getElementById('modalItemBrand').innerText = itemBrand;
+
+        // 3. Handle the Image
+        const imgEl = document.getElementById('modalItemImg');
+        if (itemImg !== 'none') {
+            imgEl.src = itemImg;
+            imgEl.classList.remove('d-none');
+        } else {
+            imgEl.classList.add('d-none');
+        }
+
+        // 4. COPY THE HIDDEN SPECS BOX!
+        const specsHtml = document.getElementById('specs-html-' + itemId).innerHTML;
+        document.getElementById('modalItemSpecs').innerHTML = specsHtml;
+
+        // 5. Build the Form URL
+        const form = document.getElementById('quickUpdateForm');
+        form.action = `/room/${roomId}/item/${itemId}/quick-update/`;
+
+        // 6. Show the Modal
+        var myModal = new bootstrap.Modal(document.getElementById('quickUpdateModal'));
+        myModal.show();
+    }
+</script>
 {% endblock %}

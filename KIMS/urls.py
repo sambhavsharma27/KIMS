@@ -37,6 +37,8 @@ urlpatterns = [
 
     # THE SMART FORM (Locked to the specific room!)
     path('room/<int:room_id>/add-stock/', views.update_stock_view, name='update_stock'),
+    # THE QUICK ACTION POP-UP
+    path('room/<int:room_id>/item/<int:item_id>/quick-update/', views.quick_update_stock, name='quick_update_stock'),
 ]
 
 # NEW: This tells Django to show images in the browser
