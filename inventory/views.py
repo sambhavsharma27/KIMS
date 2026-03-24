@@ -65,7 +65,7 @@ def dashboard_view(request):
 
 
 # ==========================================
-# 2. SMART FORM (WITH IMAGE UPLOADS)
+# 2. SMART FORM (WITH IMAGE UPLOADS & SANITIZER)
 # ==========================================
 @login_required
 def update_stock_view(request, room_id):
@@ -73,15 +73,19 @@ def update_stock_view(request, room_id):
 
     if request.method == 'POST':
         category_id = request.POST.get('category')
-        sub_category_name = request.POST.get('sub_category_name')
-        item_name = request.POST.get('item_name')
+        
+        # THE SANITIZER: .strip() removes accidental spaces, .title() capitalizes the first letters!
+        sub_category_name = request.POST.get('sub_category_name').strip().title()
+        item_name = request.POST.get('item_name').strip().title()
+        
         item_brand = request.POST.get('item_brand')
+        if item_brand:
+            item_brand = item_brand.strip().title()
+
         transaction_type = request.POST.get('transaction_type')
         quantity = request.POST.get('quantity')
         remarks = request.POST.get('remarks')
         date_recorded_input = request.POST.get('date_recorded') 
-        
-        # Catch the newly added image file!
         catalog_image = request.FILES.get('catalog_image')
 
         spec_keys = request.POST.getlist('spec_keys[]')
@@ -90,10 +94,12 @@ def update_stock_view(request, room_id):
         specifications_dict = {}
         for key, value in zip(spec_keys, spec_values):
             if key and value:
-                specifications_dict[key] = value
+                # Sanitize the custom specifications too!
+                specifications_dict[key.strip().title()] = value.strip().title()
 
         category = Category.objects.get(id=category_id)
 
+        # Because we sanitized it, Django will easily recognize if it already exists
         sub_category, _ = SubCategory.objects.get_or_create(category=category, name=sub_category_name)
         
         item, _ = Item.objects.get_or_create(
@@ -102,7 +108,6 @@ def update_stock_view(request, room_id):
             defaults={'brand': item_brand, 'specifications': specifications_dict}
         )
         
-        # If they uploaded a photo, attach it to the item
         if catalog_image:
             item.catalog_image = catalog_image
             item.save()
@@ -123,10 +128,12 @@ def update_stock_view(request, room_id):
         messages.success(request, f"Successfully logged {quantity} x {item_name} into {room.name}!")
         return redirect('room_ledger', room_id=room.id)
 
-    categories = Category.objects.all()
+    # FOR GET REQUESTS: Send all existing data to feed the "Search-As-You-Type" lists!
     context = {
         'room': room,
-        'categories': categories,
+        'categories': Category.objects.all(),
+        'sub_categories': SubCategory.objects.all(),
+        'items': Item.objects.all(),
     }
     return render(request, 'inventory/update_stock.html', context)
 

@@ -20,32 +20,40 @@
                     {% csrf_token %}
                     
                     <h5 class="text-muted mb-3">1. What is the Item?</h5>
+                    
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Category</label>
-                            <select class="form-select" name="category" required>
+                            <label class="form-label fw-bold">1. Category</label>
+                            <select class="form-select" name="category" id="formCategory" required>
                                 <option value="">-- Select Category --</option>
                                 {% for cat in categories %}
                                     <option value="{{ cat.id }}">{{ cat.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
+                        
                         <div class="col-md-6">
-                            <label class="form-label">Sub-Category (e.g. Glass Crockery)</label>
-                            <input type="text" class="form-control" name="sub_category_name" required>
+                            <label class="form-label fw-bold">2. Sub-Category</label>
+                            <input type="text" class="form-control" name="sub_category_name" id="formSubCategory" list="subCategoryList" placeholder="Type or Select..." required>
+                            <datalist id="subCategoryList">
+                                </datalist>
+                            <small class="text-muted">If it doesn't exist, just type a new one!</small>
                         </div>
                     </div>
+
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <label class="form-label">Item Name</label>
-                            <input type="text" class="form-control" name="item_name" required>
+                            <label class="form-label fw-bold">3. Item Name</label>
+                            <input type="text" class="form-control" name="item_name" id="formItemName" list="itemList" placeholder="Type or Select..." required>
+                            <datalist id="itemList">
+                                </datalist>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Brand (Optional)</label>
-                            <input type="text" class="form-control" name="item_brand">
+                            <label class="form-label fw-bold">Brand (Optional)</label>
+                            <input type="text" class="form-control" name="item_brand" placeholder="e.g. Milton">
                         </div>
                         <div class="col-md-12 mt-3">
-                            <label class="form-label">Item Image (Optional)</label>
+                            <label class="form-label fw-bold">Item Image (Optional)</label>
                             <input type="file" class="form-control" name="catalog_image" accept="image/*">
                         </div>
                     </div>
@@ -111,5 +119,57 @@
         `;
         container.appendChild(row);
     }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const allSubCategories = [
+            {% for sc in sub_categories %}
+            { name: "{{ sc.name|escapejs }}", category_id: "{{ sc.category.id }}" },
+            {% endfor %}
+        ];
+        
+        const allItems = [
+            {% for i in items %}
+            { name: "{{ i.name|escapejs }}", sub_category_name: "{{ i.sub_category.name|escapejs }}" },
+            {% endfor %}
+        ];
+
+        const catSelect = document.getElementById('formCategory');
+        const subCatInput = document.getElementById('formSubCategory');
+        const subCatList = document.getElementById('subCategoryList');
+        
+        const itemInput = document.getElementById('formItemName');
+        const itemList = document.getElementById('itemList');
+
+        catSelect.addEventListener('change', function() {
+            const selectedCatId = this.value;
+            subCatList.innerHTML = ''; 
+            subCatInput.value = '';    
+            itemInput.value = '';      
+            
+            // Using loosely equals (==) just in case!
+            const matches = allSubCategories.filter(sc => sc.category_id == selectedCatId);
+            const uniqueNames = [...new Set(matches.map(m => m.name))];
+            
+            uniqueNames.forEach(name => {
+                let option = document.createElement('option');
+                option.value = name;
+                subCatList.appendChild(option);
+            });
+        });
+
+        subCatInput.addEventListener('input', function() {
+            const selectedSubCatName = this.value;
+            itemList.innerHTML = ''; 
+            
+            const matches = allItems.filter(i => i.sub_category_name == selectedSubCatName);
+            const uniqueItemNames = [...new Set(matches.map(m => m.name))];
+            
+            uniqueItemNames.forEach(name => {
+                let option = document.createElement('option');
+                option.value = name;
+                itemList.appendChild(option);
+            });
+        });
+    });
 </script>
 {% endblock %}
