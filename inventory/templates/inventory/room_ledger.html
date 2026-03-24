@@ -1,68 +1,93 @@
 {% extends 'inventory/base.html' %}
 
 {% block content %}
-<nav aria-label="breadcrumb" class="bg-light p-3 rounded mb-4 shadow-sm">
-    <ol class="breadcrumb mb-0 fs-5">
-        <li class="breadcrumb-item fw-bold text-primary">{{ location.name }}</li>
-        <li class="breadcrumb-item"><a href="{% url 'select_floor' building.id %}" class="text-decoration-none text-secondary">{{ building.name }}</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'select_room' floor.id %}" class="text-decoration-none text-secondary">{{ floor.name }}</a></li>
-        <li class="breadcrumb-item active text-dark fw-bold" aria-current="page">{{ room.name }}</li>
-    </ol>
-</nav>
-
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Current Ledger: <span class="text-primary">{{ room.name }}</span></h2>
-    <a href="{% url 'update_stock' room.id %}" class="btn btn-success btn-lg shadow-sm">
-        + Add / Update Stock Here
+<div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+    <div>
+        <h2 class="mb-0">{{ room.name }} <span class="text-muted fs-4">Ledger</span></h2>
+        <small class="text-muted fw-bold">
+            📍 {{ location.name }} &rarr; {{ building.name }} &rarr; {{ floor.name }}
+        </small>
+    </div>
+    
+    <a href="{% url 'update_stock' room.id %}" class="btn btn-success shadow-sm btn-lg fw-bold border-dark">
+        ➕ Add Brand New Item
     </a>
 </div>
 
-<div class="card shadow-sm border-0">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover table-striped mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th class="py-3 px-4">Date Logged</th>
-                        <th class="py-3">Item Name</th>
-                        <th class="py-3">Category</th>
-                        <th class="py-3">Type</th>
-                        <th class="py-3 text-center">Quantity</th>
-                        <th class="py-3">Remarks</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for txn in transactions %}
-                    <tr>
-                        <td class="px-4 align-middle">{{ txn.date_recorded|date:"M d, Y" }}</td>
-                        <td class="align-middle fw-bold">{{ txn.item.name }}
-                            {% if txn.item.brand %}
-                                <br><small class="text-muted fw-normal">{{ txn.item.brand }}</small>
-                            {% endif %}
-                        </td>
-                        <td class="align-middle">{{ txn.item.sub_category.name }}</td>
-                        <td class="align-middle">
+<div class="row">
+    <div class="col-md-9">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">📦 Current Live Stock</h5>
+                <small>Auto-calculated from all historical transactions</small>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-4 py-3">Item</th>
+                            <th class="text-center py-3 text-success">Total Received</th>
+                            <th class="text-center py-3 text-danger">Broken/Lost</th>
+                            <th class="text-center py-3 text-warning">Transferred Out</th>
+                            <th class="text-center py-3 bg-light fs-5">= Live Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in live_items %}
+                        <tr style="cursor: pointer;" class="item-row">
+                            <td class="px-4">
+                                <div class="d-flex align-items-center">
+                                    {% if item.catalog_image %}
+                                        <img src="{{ item.catalog_image.url }}" class="rounded shadow-sm me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="bg-secondary rounded me-3 d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px; opacity: 0.2;"><small>No Img</small></div>
+                                    {% endif %}
+                                    <div>
+                                        <strong class="fs-6">{{ item.name }}</strong>
+                                        <br><span class="badge bg-light text-dark border">{{ item.sub_category.name }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center fw-bold text-success fs-5">+{{ item.total_received }}</td>
+                            <td class="text-center fw-bold text-danger fs-5">-{{ item.total_damaged }}</td>
+                            <td class="text-center fw-bold text-warning fs-5">-{{ item.total_transferred }}</td>
+                            <td class="text-center fw-bold bg-light fs-4 text-primary">{{ item.current_stock }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">No items exist in this room yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light">
+                <h6 class="mb-0 text-muted fw-bold">Recent Activity</h6>
+            </div>
+            <div class="card-body p-2">
+                <ul class="list-group list-group-flush">
+                    {% for txn in recent_activity %}
+                    <li class="list-group-item px-2 py-3 border-bottom">
+                        <small class="text-muted d-block mb-1">{{ txn.date_recorded|date:"M d, Y" }}</small>
+                        <strong>{{ txn.item.name }}</strong>
+                        <div class="mt-1">
                             {% if txn.transaction_type == 'RECEIPT' %}
-                                <span class="badge bg-success">Received</span>
+                                <span class="badge bg-success">+{{ txn.quantity }} Added</span>
                             {% elif txn.transaction_type == 'DAMAGE' %}
-                                <span class="badge bg-danger">Damaged</span>
+                                <span class="badge bg-danger">-{{ txn.quantity }} Damaged</span>
                             {% else %}
-                                <span class="badge bg-warning text-dark">Transferred</span>
+                                <span class="badge bg-warning text-dark">-{{ txn.quantity }} Moved</span>
                             {% endif %}
-                        </td>
-                        <td class="align-middle text-center fs-5 fw-bold">{{ txn.quantity }}</td>
-                        <td class="align-middle text-muted">{{ txn.remarks|default:"--" }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
-                            <h4>No items have been logged in this room yet.</h4>
-                            <p>Click the green button above to add the first item!</p>
-                        </td>
-                    </tr>
+                        </div>
+                    </li>
                     {% endfor %}
-                </tbody>
-            </table>
+                </ul>
+            </div>
         </div>
     </div>
 </div>

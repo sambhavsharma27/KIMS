@@ -3,6 +3,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import Location, Building, Floor, Room, Category, SubCategory, Item, InventoryTransaction
+from django.db.models import Sum, Q, F
+from django.db.models.functions import Coalesce
+
 
 # ==========================================
 # 1. THE MASTER DASHBOARD (WITH FILTERS)
@@ -139,8 +142,9 @@ def update_stock_view(request, room_id):
 
 
 # ==========================================
-# 3. PROGRESSIVE DISCLOSURE (DRILL-DOWN)
+# 3. PROGRESSIVE DISCLOSURE (DRILL-DOWN & LEDGER)
 # ==========================================
+
 @login_required
 def select_building(request, location_id):
     location = get_object_or_404(Location, id=location_id)
@@ -183,16 +187,33 @@ def select_room(request, floor_id):
     }
     return render(request, 'inventory/spatial_selector.html', context)
 
+
 @login_required
 def room_ledger(request, room_id):
     room = get_object_or_404(Room, id=room_id)
-    transactions = InventoryTransaction.objects.filter(room=room).order_by('-date_recorded')
+    
+    # THE LIVE MATH ENGINE: 
+    # 1. Grab items that belong to this room
+    # 2. Calculate the exact sums for Receipts, Damages, and Transfers
+    # 3. Coalesce ensures if there are 0 damages, Python uses the number 0 instead of "None"
+    live_items = Item.objects.filter(inventorytransaction__room=room).distinct().annotate(
+        total_received=Coalesce(Sum('inventorytransaction__quantity', filter=Q(inventorytransaction__room=room, inventorytransaction__transaction_type='RECEIPT')), 0),
+        total_damaged=Coalesce(Sum('inventorytransaction__quantity', filter=Q(inventorytransaction__room=room, inventorytransaction__transaction_type='DAMAGE')), 0),
+        total_transferred=Coalesce(Sum('inventorytransaction__quantity', filter=Q(inventorytransaction__room=room, inventorytransaction__transaction_type='TRANSFER')), 0),
+    ).annotate(
+        # 4. Do the final math!
+        current_stock=F('total_received') - F('total_damaged') - F('total_transferred')
+    ).order_by('-current_stock')
+    
+    # We will keep a small feed of the 5 most recent actions just in case you want to see who did what recently.
+    recent_activity = InventoryTransaction.objects.filter(room=room).order_by('-date_recorded')[:5]
     
     context = {
         'room': room,
         'location': room.floor.building.location,
         'building': room.floor.building,
         'floor': room.floor,
-        'transactions': transactions 
+        'live_items': live_items,
+        'recent_activity': recent_activity
     }
     return render(request, 'inventory/room_ledger.html', context)
