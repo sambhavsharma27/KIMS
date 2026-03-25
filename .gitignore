@@ -13,3 +13,4 @@ media/
 
 # Environment Variables (For when we hide your passwords later)
 .env
+requirements.txt
