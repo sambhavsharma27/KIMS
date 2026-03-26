@@ -78,7 +78,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'kims_db',
-        'USER': 'postgres',  # <--- Change this to your username
+        'USER': 'sambhav',  # <--- Change this to your username
         'PASSWORD': '',     # Leave this blank
         'HOST': 'localhost',
         'PORT': '5432',
