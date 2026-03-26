@@ -1,12 +1,73 @@
 {% extends 'inventory/base.html' %}
 
 {% block content %}
+<style>
+    .custom-file-upload {
+        border: 2px dashed #0d6efd; /* Primary blue dashed border */
+        border-radius: 12px;
+        width: 160px;
+        height: 160px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        background-color: #f8f9fa;
+        margin: 0 auto;
+        position: relative;
+        transition: background-color 0.2s;
+    }
+    .custom-file-upload:hover {
+        background-color: #e9ecef;
+    }
+    .upload-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: #6c757d;
+    }
+    .image-preview-wrapper {
+        width: 100%;
+        height: 100%;
+        display: none; /* Hidden until image is selected */
+        border-radius: 10px;
+        overflow: hidden;
+        background-color: #fff;
+    }
+    .image-preview-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+    .remove-image-btn {
+        position: absolute;
+        top: -12px;
+        right: -12px;
+        background-color: #dc3545; /* Danger red */
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: none; /* Hidden until image is selected */
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        cursor: pointer;
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .remove-image-btn:hover {
+        background-color: #c82333;
+    }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
     <div>
         <h2 class="mb-0">{{ room.name }} <span class="text-muted fs-4">Ledger</span></h2>
         <small class="text-muted fw-bold">📍 {{ location.name }} &rarr; {{ building.name }} &rarr; {{ floor.name }}</small>
     </div>
-    
+
     <button type="button" class="btn btn-success shadow-sm btn-lg fw-bold border-dark" data-bs-toggle="modal" data-bs-target="#addNewItemModal">
         ➕ Add Brand New Item
     </button>
@@ -32,13 +93,13 @@
                     </thead>
                     <tbody>
                         {% for item in live_items %}
-                        <tr style="cursor: pointer;" class="item-row table-hover-shadow" 
-                            data-item-id="{{ item.id }}" data-item-name="{{ item.name }}" 
+                        <tr style="cursor: pointer;" class="item-row table-hover-shadow"
+                            data-item-id="{{ item.id }}" data-item-name="{{ item.name }}"
                             data-item-stock="{{ item.current_stock }}" data-item-brand="{{ item.brand|default:'N/A' }}"
                             data-item-colour="{{ item.colour|default:'N/A' }}"
                             data-item-img="{% if item.catalog_image %}{{ item.catalog_image.url }}{% else %}none{% endif %}"
                             onclick="openQuickUpdateModal(this)">
-                            
+
                             <td class="px-4 py-3">
                                 <div class="d-flex align-items-center">
                                     {% if item.catalog_image %}
@@ -114,12 +175,40 @@
                 <h5 class="modal-title">📦 Add New Item to {{ room.name }}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
+
             <form method="POST" action="{% url 'add_new_item_modal_submit' room.id %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-body bg-light p-4">
-                    <h6 class="text-muted fw-bold mb-3 border-bottom pb-2">1. Item Details</h6>
-                    
+
+                    <div class="row mb-4">
+                        <div class="col-12 text-center position-relative">
+                            <label class="form-label fw-bold small text-primary d-block text-start mb-2">Item Image (Optional)</label>
+
+                            <div class="d-inline-block position-relative">
+                                <input type="file" class="d-none" name="catalog_image" id="itemImageInput" accept="image/*" onchange="previewImage(this)">
+
+                                <label for="itemImageInput" class="custom-file-upload mb-0" id="uploadLabel">
+                                    <div class="upload-placeholder" id="uploadPlaceholder">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" class="bi bi-camera mb-2 text-secondary" viewBox="0 0 16 16">
+                                            <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z"/>
+                                            <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
+                                            <path d="M3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/>
+                                        </svg>
+                                        <span class="small fw-bold text-secondary mt-1" style="letter-spacing: 0.5px;">UPLOAD PHOTO</span>
+                                    </div>
+
+                                    <div class="image-preview-wrapper" id="imagePreviewWrapper">
+                                        <img id="image-preview-element" src="#" alt="Preview">
+                                    </div>
+                                </label>
+
+                                <button type="button" class="remove-image-btn" id="removeImageBtn" onclick="clearImagePreview(event)">
+                                    &times;
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Category</label>
@@ -139,44 +228,49 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Brand (Optional)</label>
-                            <input type="text" class="form-control" name="item_brand" placeholder="e.g. Samsung">
+                            <input type="text" class="form-control border-dark shadow-sm" name="item_brand" placeholder="e.g. Samsung">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Colour (Optional)</label>
-                            <input type="text" class="form-control" name="item_colour" placeholder="e.g. Black">
+                            <input type="text" class="form-control border-dark shadow-sm" name="item_colour" placeholder="e.g. Black">
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small">Item Image (Optional)</label>
-                        <input type="file" class="form-control" name="catalog_image" accept="image/*">
-                    </div>
-
-                    <div class="p-3 bg-white border rounded shadow-sm mb-4">
-                        <h6 class="text-muted small fw-bold mb-2">Item Specifications (Optional)</h6>
-                        <div id="specs-container"></div>
-                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addSpecRow()">
-                            + Add Custom Detail (e.g. Material, Watts)
-                        </button>
-                    </div>
-
-                    <h6 class="text-muted fw-bold mb-3 border-bottom pb-2">2. Transaction Details</h6>
                     <div class="row mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label fw-bold small">Date</label>
                             <input type="date" class="form-control border-dark shadow-sm" name="date_recorded" id="todayDateInput" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label fw-bold small">Received From</label>
                             <input type="text" class="form-control border-dark shadow-sm" name="received_from" placeholder="e.g. Solan / H6" required>
                         </div>
-                        <div class="col-md-4">
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small d-block">Specifications (Optional)</label>
+                            <button type="button" class="btn btn-outline-primary btn-sm w-100 shadow-sm py-2" onclick="addSpecRow()">
+                                + Add Custom Detail (e.g. Material)
+                            </button>
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label fw-bold small">Quantity</label>
                             <input type="number" class="form-control border-dark shadow-sm" name="quantity" min="1" value="1" required>
                         </div>
                     </div>
+
+                    <div id="specs-container" class="mt-2"></div>
+
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold small">Remarks (Optional)</label>
+                            <input type="text" class="form-control border-dark shadow-sm" name="remarks" placeholder="Any additional notes...">
+                        </div>
+                    </div>
+
                 </div>
-                
+
                 <div class="modal-footer bg-light border-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-success fw-bold px-4 shadow-sm">Save Item & Log Transaction</button>
@@ -193,7 +287,7 @@
                 <h5 class="modal-title">📦 Item Details & Update</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
+
             <div class="modal-body p-0">
                 <div class="row g-0">
                     <div class="col-md-6 p-4 bg-light border-end">
@@ -203,7 +297,7 @@
                         <h4 id="modalItemName" class="text-primary fw-bold text-center mb-1"></h4>
                         <p class="text-center text-muted small mb-1">Brand: <strong id="modalItemBrand" class="text-dark"></strong></p>
                         <p class="text-center text-muted small mb-3">Colour: <strong id="modalItemColour" class="text-dark"></strong></p>
-                        
+
                         <h6 class="fw-bold text-muted border-bottom pb-2">Specifications</h6>
                         <div id="modalItemSpecs"></div>
                     </div>
@@ -240,7 +334,7 @@
 </div>
 
 <script>
-    // Set today's date in the Add New Item modal
+    // Set today's date
     document.addEventListener("DOMContentLoaded", function() {
         const dateInput = document.getElementById('todayDateInput');
         if (dateInput) {
@@ -248,15 +342,59 @@
         }
     });
 
+    // Custom Image Preview Logic
+    function previewImage(input) {
+        const previewWrapper = document.getElementById('imagePreviewWrapper');
+        const previewImg = document.getElementById('image-preview-element');
+        const placeholder = document.getElementById('uploadPlaceholder');
+        const removeBtn = document.getElementById('removeImageBtn');
+
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                // Hide placeholder, show image and button
+                placeholder.style.display = 'none';
+                previewWrapper.style.display = 'block';
+                removeBtn.style.display = 'flex'; // Use flex to center the X
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Function to clear the image and return to empty state
+    function clearImagePreview(event) {
+        // Prevent clicking the X from opening the file explorer
+        if(event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        const input = document.getElementById('itemImageInput');
+        const previewWrapper = document.getElementById('imagePreviewWrapper');
+        const previewImg = document.getElementById('image-preview-element');
+        const placeholder = document.getElementById('uploadPlaceholder');
+        const removeBtn = document.getElementById('removeImageBtn');
+
+        // Reset elements
+        input.value = "";
+        previewImg.src = "#";
+
+        // Show placeholder, hide image and button
+        placeholder.style.display = 'flex';
+        previewWrapper.style.display = 'none';
+        removeBtn.style.display = 'none';
+    }
+
     // Dynamic Specifications Logic
     function addSpecRow() {
         const container = document.getElementById('specs-container');
         const row = document.createElement('div');
-        row.className = 'row mb-2';
+        row.className = 'row mb-2 animate-fade-in';
         row.innerHTML = `
-            <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_keys[]" placeholder="Detail (e.g. Material)" required></div>
-            <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_values[]" placeholder="Value (e.g. Glass)" required></div>
-            <div class="col-2"><button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.parentElement.remove()">X</button></div>
+            <div class="col-5"><input type="text" class="form-control form-control-sm border-dark shadow-sm" name="spec_keys[]" placeholder="Detail (e.g. Material)" required></div>
+            <div class="col-5"><input type="text" class="form-control form-control-sm border-dark shadow-sm" name="spec_values[]" placeholder="Value (e.g. Glass)" required></div>
+            <div class="col-2"><button type="button" class="btn btn-sm btn-danger w-100" onclick="this.parentElement.parentElement.remove()">X</button></div>
         `;
         container.appendChild(row);
     }
@@ -264,7 +402,7 @@
     // Quick Update Modal Logic
     function openQuickUpdateModal(rowElement) {
         const itemId = rowElement.getAttribute('data-item-id');
-        const roomId = "{{ room.id }}"; 
+        const roomId = "{{ room.id }}";
 
         document.getElementById('modalItemName').innerText = rowElement.getAttribute('data-item-name');
         document.getElementById('modalItemStock').innerText = rowElement.getAttribute('data-item-stock');
@@ -273,7 +411,7 @@
 
         const imgEl = document.getElementById('modalItemImg');
         const itemImg = rowElement.getAttribute('data-item-img');
-        if (itemImg && itemImg !== 'none') { imgEl.src = itemImg; imgEl.classList.remove('d-none'); } 
+        if (itemImg && itemImg !== 'none') { imgEl.src = itemImg; imgEl.classList.remove('d-none'); }
         else { imgEl.classList.add('d-none'); }
 
         document.getElementById('modalItemSpecs').innerHTML = document.getElementById('specs-html-' + itemId).innerHTML;
