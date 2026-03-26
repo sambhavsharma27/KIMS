@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Location, Building, Floor, Room, Category, SubCategory, Item, InventoryTransaction, UserProfile
+from .models import Location, Building, Floor, Room, Category, Item, InventoryTransaction, UserProfile
 
 # --- SPATIAL ADMIN ---
 @admin.register(Location)
@@ -20,10 +20,13 @@ class BuildingAdmin(admin.ModelAdmin):
 # --- CATALOG ADMIN ---
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ('name', 'brand', 'sub_category', 'updated_at')
+    # CHANGED: Swapped sub_category for category
+    list_display = ('name', 'brand', 'category', 'updated_at')
     readonly_fields = ('created_at', 'updated_at')
-    search_fields = ('name', 'brand')
-    list_filter = ('sub_category__category',) 
+    # CHANGED: Added your new 'colour' field to the search bar!
+    search_fields = ('name', 'brand', 'colour')
+    # CHANGED: Filter directly by category now
+    list_filter = ('category',) 
 
 # --- LEDGER ADMIN (The most important one for auditing) ---
 @admin.register(InventoryTransaction)
@@ -38,5 +41,5 @@ class TransactionAdmin(admin.ModelAdmin):
 admin.site.register(Floor)
 admin.site.register(Room)
 admin.site.register(Category)
-admin.site.register(SubCategory)
+# DELETED: admin.site.register(SubCategory)
 admin.site.register(UserProfile)

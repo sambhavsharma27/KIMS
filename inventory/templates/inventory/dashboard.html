@@ -4,10 +4,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
     <h2>Master Inventory: <span class="text-primary">{{ current_location.name }}</span></h2>
     <div>
-        <a href="{% url 'select_building' current_location.id %}" class="btn btn-primary me-3 shadow-sm border border-dark">
-            ➕ Add / Update Stock
+        <a href="{% url 'select_building' current_location.id %}" class="btn btn-primary me-3 shadow-sm fw-bold">
+            🚶‍♂️ Virtual Visit (Manage Rooms)
         </a>
-        
         <button class="btn btn-success me-2 shadow-sm">📥 Export to Excel</button>
         <button class="btn btn-danger shadow-sm">📄 Export to PDF</button>
     </div>
@@ -56,7 +55,7 @@
 
             <h6 class="text-muted mb-3 mt-4">📦 Item & Date Filters</h6>
             <div class="row mb-3">
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold">Category</label>
                     <select class="form-select bg-white" name="category" id="categorySelect">
                         <option value="">All Categories</option>
@@ -65,16 +64,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small fw-bold">Sub-Category</label>
-                    <select class="form-select bg-white" name="sub_category" id="subCategorySelect">
-                        <option value="">All Sub-Categories</option>
-                        {% for sc in sub_categories %}
-                            <option value="{{ sc.id }}" data-category="{{ sc.category.id }}" {% if request.GET.sub_category == sc.id|stringformat:"s" %}selected{% endif %}>{{ sc.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold">Search Item</label>
                     <input type="text" class="form-control bg-white" name="search_name" value="{{ request.GET.search_name }}" placeholder="e.g. Jug">
                 </div>
@@ -129,8 +119,10 @@
                             <strong class="fs-6">{{ item.name }}</strong>
                             {% if item.brand %}<br><small class="text-muted">{{ item.brand }}</small>{% endif %}
                             <br>
-                            <span class="badge bg-secondary mt-1">{{ item.sub_category.category.name }}</span>
-                            <span class="badge bg-light text-dark border">{{ item.sub_category.name }}</span>
+                            <span class="badge bg-secondary mt-1">{{ item.category.name|default:"Uncategorized" }}</span>
+                            {% if item.colour %}
+                                <span class="badge bg-light text-dark border">{{ item.colour }}</span>
+                            {% endif %}
                         </td>
                         <td class="text-center fw-bold text-success fs-5">+{{ item.total_received }}</td>
                         <td class="text-center fw-bold text-danger fs-5">-{{ item.total_damaged }}</td>
@@ -161,9 +153,9 @@
             <table class="table table-hover table-striped mb-0 align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th class="py-3 px-4">Image</th>
-                        <th class="py-3">Date</th>
+                        <th class="py-3 px-4">Date</th>
                         <th class="py-3">Item Details</th>
+                        <th class="py-3">Origin / Destination</th>
                         <th class="py-3">Exact Location</th>
                         <th class="py-3 text-center">Qty</th>
                         <th class="py-3">Status</th>
@@ -172,20 +164,19 @@
                 <tbody>
                     {% for txn in transactions %}
                     <tr>
-                        <td class="px-4">
-                            {% if txn.item.catalog_image %}
-                                <img src="{{ txn.item.catalog_image.url }}" alt="Item Image" class="rounded shadow-sm" style="width: 50px; height: 50px; object-fit: cover;">
-                            {% else %}
-                                <div class="bg-secondary rounded text-white d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; opacity: 0.2;">
-                                    <small>No Img</small>
-                                </div>
-                            {% endif %}
-                        </td>
-                        <td class="fw-bold text-muted">{{ txn.date_recorded|date:"M d, Y" }}</td>
+                        <td class="fw-bold text-muted px-4">{{ txn.date_recorded|date:"M d, Y" }}</td>
                         <td>
                             <strong>{{ txn.item.name }}</strong>
                             {% if txn.item.brand %}<br><small class="text-muted">{{ txn.item.brand }}</small>{% endif %}
-                            <br><span class="badge bg-light text-dark border">{{ txn.item.sub_category.name }}</span>
+                            <br>
+                            <span class="badge bg-light text-dark border">{{ txn.item.category.name|default:"Uncategorized" }}</span>
+                        </td>
+                        <td>
+                            {% if txn.received_from %}
+                                <small class="text-muted">From: <strong>{{ txn.received_from }}</strong></small>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
                         </td>
                         <td>
                             <small class="text-muted">{{ txn.room.floor.building.name }} &rarr;</small><br>
@@ -218,19 +209,12 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Spatial Elements
         const buildingSelect = document.getElementById('buildingSelect');
         const floorSelect = document.getElementById('floorSelect');
         const roomSelect = document.getElementById('roomSelect');
         
-        // Category Elements
-        const categorySelect = document.getElementById('categorySelect');
-        const subCategorySelect = document.getElementById('subCategorySelect');
-
-        // Store original options
         const allFloors = Array.from(floorSelect.options);
         const allRooms = Array.from(roomSelect.options);
-        const allSubCategories = Array.from(subCategorySelect.options);
 
         function filterSpatialDropdowns() {
             const selectedBuilding = buildingSelect.value;
@@ -256,19 +240,6 @@
             });
         }
 
-        function filterCategoryDropdowns() {
-            const selectedCategory = categorySelect.value;
-            
-            subCategorySelect.innerHTML = '';
-            allSubCategories.forEach(option => {
-                // Show it if it's the blank option, OR if it matches the category, OR if no category is selected
-                if (option.value === "" || option.dataset.category === selectedCategory || selectedCategory === "") {
-                    subCategorySelect.appendChild(option);
-                }
-            });
-        }
-
-        // Event Listeners
         buildingSelect.addEventListener('change', function() {
             floorSelect.value = ""; 
             roomSelect.value = "";
@@ -280,20 +251,11 @@
             filterSpatialDropdowns();
         });
 
-        categorySelect.addEventListener('change', function() {
-            subCategorySelect.value = ""; // Reset sub-category when parent changes
-            filterCategoryDropdowns();
-        });
-
-        // Run on load
         filterSpatialDropdowns();
-        filterCategoryDropdowns();
         
-        // Retain selections from URL
         const urlParams = new URLSearchParams(window.location.search);
         if(urlParams.get('floor')) floorSelect.value = urlParams.get('floor');
         if(urlParams.get('room')) roomSelect.value = urlParams.get('room');
-        if(urlParams.get('sub_category')) subCategorySelect.value = urlParams.get('sub_category');
     });
 </script>
 {% endblock %}
