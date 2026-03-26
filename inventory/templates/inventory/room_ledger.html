@@ -3,12 +3,12 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
     <div>
-        <h2 class="mb-0">{{ room.name }} <span class="text-muted fs-4">Ledger</span></h2>
+        <h2 class="mb-0">{{ room.name }}</h2>
         <small class="text-muted fw-bold">
             📍 {{ location.name }} &rarr; {{ building.name }} &rarr; {{ floor.name }}
         </small>
     </div>
-    
+
     <a href="{% url 'update_stock' room.id %}" class="btn btn-success shadow-sm btn-lg fw-bold border-dark">
         ➕ Add Brand New Item
     </a>
@@ -26,10 +26,12 @@
                     <thead class="table-light">
                         <tr>
                             <th class="px-4 py-3">Item</th>
-                            <th class="text-center py-3">Brand</th>
-                            <th class="text-center py-3">Transaction Date</th>
-                            <th class="text-center py-3">Total Quantity</th>
-                            <th class="text-center py-3">Action</th>
+                            <th class="text-center py-3">Item Details</th>
+                            <th class="text-center py-3">Make / Brand </th>
+                            <th class="text-center py-3">Model</th>
+                            <th class="text-center py-3">Recieved on</th>
+                            <th class="text-center py-3">Quantity</th>
+                            <th class="text-center py-3">Balanced</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -46,26 +48,28 @@
                             <td class="px-4 py-3">
                                 <div class="d-flex align-items-center">
                                     {% if item.catalog_image %}
-                                        <img src="{{ item.catalog_image.url }}" class="rounded shadow-sm me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                        <img src="{{ item.catalog_image.url }}" class="rounded shadow-sm me-3" style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;" onclick="openQuickUpdateModal(this.closest('tr'))">
                                     {% else %}
-                                        <div class="bg-secondary rounded me-3 d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px; opacity: 0.2;"><small>No Img</small></div>
+                                        <div class="bg-secondary rounded me-3 d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px; opacity: 0.2; cursor: pointer;" onclick="openQuickUpdateModal(this.closest('tr'))"><small>No Img</small></div>
                                     {% endif %}
                                     <div>
                                         <a href="javascript:void(0);" class="fw-bold fs-6 text-primary text-decoration-none item-name-link" onclick="openQuickUpdateModal(this.closest('tr'))">{{ item.name }}</a>
-                                        <br><span class="badge bg-light text-dark border">{{ item.sub_category.name }}</span>
                                     </div>
                                 </div>
+                            </td>
 
+                            <td class="text-center align-middle">
+                                <span class="badge bg-light text-dark border">{{ item.sub_category.name }}</span>
                                 <div id="specs-html-{{ item.id }}" class="d-none">
                                     {% if item.specifications %}
                                         <table class="table table-sm table-bordered mt-3 mb-0 bg-white">
                                             <tbody>
-                                            {% for key, val in item.specifications.items %}
-                                                <tr>
-                                                    <th class="bg-light text-muted small w-50 py-1">{{ key }}</th>
-                                                    <td class="small py-1 fw-bold">{{ val }}</td>
-                                                </tr>
-                                            {% endfor %}
+                                                {% for key, val in item.specifications.items %}
+                                                    <tr>
+                                                        <th class="bg-light text-muted small w-50 py-1">{{ key }}</th>
+                                                        <td class="small py-1 fw-bold">{{ val }}</td>
+                                                    </tr>
+                                                {% endfor %}
                                             </tbody>
                                         </table>
                                     {% else %}
@@ -73,18 +77,24 @@
                                     {% endif %}
                                 </div>
                             </td>
-                            <td class="text-center fw-bold">{{ item.brand|default:"N/A" }}</td>
-                            <td class="text-center">{{ item.latest_transaction_date|date:"M d, Y"|default:"N/A" }}</td>
-                            <td class="text-center fw-bold fs-5">{{ item.current_stock }}</td>
-                            <td class="text-center">
-                                <a href="{% url 'update_stock' room.id %}?item_id={{ item.id }}" class="btn btn-sm btn-outline-primary">
-                                    Edit
-                                </a>
+
+                            <td class="text-center align-middle">{{ item.brand|default:"-" }}</td>
+
+                            <td class="text-center align-middle">{{ item.model|default:"-" }}</td>
+
+                            <td class="text-center align-middle">{{ item.latest_transaction_date|date:"M d, Y"|default:"-" }}</td>
+
+                            <td class="text-center align-middle fs-5">
+                                {{ item.total_received|default:"0" }}
+                            </td>
+
+                            <td class="text-center align-middle fw-bold fs-5">
+                                {{ item.current_stock|default:"0" }}
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">No items exist in this room yet.</td>
+                            <td colspan="7" class="text-center py-5 text-muted">No items exist in this room yet.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -97,22 +107,22 @@
 <div class="modal fade" id="quickUpdateModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
-            
+
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title">📦 Item Details & Update</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
+
             <div class="modal-body p-0">
                 <div class="row g-0">
-                    
+
                     <div class="col-md-6 p-4 bg-light border-end">
                         <div class="text-center mb-3">
                             <img id="modalItemImg" src="" class="rounded shadow-sm d-none" style="width: 120px; height: 120px; object-fit: cover;">
                         </div>
                         <h4 id="modalItemName" class="text-primary fw-bold text-center mb-1"></h4>
                         <p class="text-center text-muted small mb-3">Brand: <strong id="modalItemBrand" class="text-dark"></strong></p>
-                        
+
                         <h6 class="fw-bold text-muted border-bottom pb-2">Specifications</h6>
                         <div id="modalItemSpecs"></div>
 
@@ -130,7 +140,7 @@
                     <div class="col-md-6 p-4">
                         <form id="quickUpdateForm" method="POST" action="">
                             {% csrf_token %}
-                            
+
                             <div class="alert alert-info py-2 mb-4 shadow-sm border-0 text-center">
                                 Live Stock: <strong id="modalItemStock" class="fs-4 d-block"></strong>
                             </div>
@@ -153,7 +163,7 @@
                                 <label class="form-label fw-bold small text-muted">Remarks (Optional)</label>
                                 <input type="text" class="form-control" name="remarks" placeholder="e.g. Dropped while cleaning">
                             </div>
-                            
+
                             <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">Save Update</button>
                         </form>
                     </div>
@@ -199,7 +209,7 @@
             imgEl.classList.add('d-none');
         }
 
-        // 4. COPY THE HIDDEN SPECS BOX!
+        // 4. COPY THE HIDDEN SPECS BOX
         const specsHtml = document.getElementById('specs-html-' + itemId).innerHTML;
         document.getElementById('modalItemSpecs').innerHTML = specsHtml;
 
@@ -208,7 +218,8 @@
         form.action = `/room/${roomId}/item/${itemId}/quick-update/`;
 
         // 6. Show the Modal
-        var myModal = new bootstrap.Modal(document.getElementById('quickUpdateModal'));
+        const modalElement = document.getElementById('quickUpdateModal');
+        const myModal = bootstrap.Modal.getOrCreateInstance(modalElement);
         myModal.show();
     }
 </script>
