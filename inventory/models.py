@@ -70,8 +70,11 @@ class Item(TimeStampedModel):
     colour = models.CharField(max_length=50, blank=True, null=True)
     
     catalog_image = models.ImageField(upload_to='catalog_photos/', blank=True, null=True)
-    specifications = models.JSONField(default=dict, blank=True) 
-    
+    specifications = models.JSONField(default=dict, blank=True)
+
+    quantity = models.IntegerField(default=0)
+
+    remarks = models.TextField(blank=True, null=True)
     def __str__(self): 
         # Cleanly formats name e.g., "Samsung Television - Black"
         parts = filter(None, [self.brand, self.name])

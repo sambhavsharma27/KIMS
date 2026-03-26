@@ -21,17 +21,17 @@ class BuildingAdmin(admin.ModelAdmin):
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
     # CHANGED: Swapped sub_category for category
-    list_display = ('name', 'brand', 'category', 'updated_at')
+    list_display = ('name', 'brand', 'category', 'updated_at','quantity','remarks')
     readonly_fields = ('created_at', 'updated_at')
     # CHANGED: Added your new 'colour' field to the search bar!
-    search_fields = ('name', 'brand', 'colour')
+    search_fields = ('name', 'brand', 'colour','remarks')
     # CHANGED: Filter directly by category now
     list_filter = ('category',) 
 
 # --- LEDGER ADMIN (The most important one for auditing) ---
 @admin.register(InventoryTransaction)
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ('item', 'transaction_type', 'quantity', 'room', 'date_recorded')
+    list_display = ('item', 'transaction_type', 'quantity', 'room', 'date_recorded','remarks')
     readonly_fields = ('date_recorded',)
     # This creates an awesome sidebar where HQ can filter by Damage, Receipt, etc.
     list_filter = ('transaction_type', 'date_recorded') 
