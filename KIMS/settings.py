@@ -138,3 +138,17 @@ LOGOUT_REDIRECT_URL = 'login'
 # --- MEDIA (Image Uploads) ---
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+# ==========================================
+# SESSION & AUTO-LOGOUT SETTINGS (TESTING MODE)
+# ==========================================
+
+# 1. Set the session length to 1 minute (60 seconds)
+SESSION_COOKIE_AGE = 18000
+
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+LOGIN_URL = 'login'
+LOGOUT_REDIRECT_URL = 'login'

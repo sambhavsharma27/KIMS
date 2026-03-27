@@ -2,11 +2,12 @@
 
 {% block content %}
 <style>
+    /* Advanced Image Upload & UI Styling */
     .custom-file-upload {
-        border: 2px dashed #0d6efd; /* Primary blue dashed border */
+        border: 2px dashed #0d6efd;
         border-radius: 12px;
-        width: 160px;
-        height: 160px;
+        width: 150px;
+        height: 150px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -15,51 +16,20 @@
         background-color: #f8f9fa;
         margin: 0 auto;
         position: relative;
-        transition: background-color 0.2s;
+        transition: all 0.2s;
     }
-    .custom-file-upload:hover {
-        background-color: #e9ecef;
-    }
-    .upload-placeholder {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        color: #6c757d;
-    }
-    .image-preview-wrapper {
-        width: 100%;
-        height: 100%;
-        display: none; /* Hidden until image is selected */
-        border-radius: 10px;
-        overflow: hidden;
-        background-color: #fff;
-    }
-    .image-preview-wrapper img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-    }
+    .custom-file-upload:hover { background-color: #e9ecef; border-color: #0a58ca; }
+    .upload-placeholder { display: flex; flex-direction: column; align-items: center; color: #6c757d; }
+    .image-preview-wrapper { width: 100%; height: 100%; border-radius: 10px; overflow: hidden; }
+    .image-preview-wrapper img { width: 100%; height: 100%; object-fit: contain; }
+
     .remove-image-btn {
-        position: absolute;
-        top: -12px;
-        right: -12px;
-        background-color: #dc3545; /* Danger red */
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        display: none; /* Hidden until image is selected */
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        cursor: pointer;
-        z-index: 10;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        position: absolute; top: -10px; right: -10px; background: #dc3545; color: white;
+        border: none; border-radius: 50%; width: 28px; height: 28px; display: none;
+        align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
-    .remove-image-btn:hover {
-        background-color: #c82333;
-    }
+    .item-name-link:hover, .balance-link:hover { text-decoration: underline !important; cursor: pointer; }
+    .table-hover-shadow:hover { background-color: rgba(0,0,0,0.02); }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
@@ -67,102 +37,97 @@
         <h2 class="mb-0">{{ room.name }} <span class="text-muted fs-4">Ledger</span></h2>
         <small class="text-muted fw-bold">📍 {{ location.name }} &rarr; {{ building.name }} &rarr; {{ floor.name }}</small>
     </div>
-
     <button type="button" class="btn btn-success shadow-sm btn-lg fw-bold border-dark" data-bs-toggle="modal" data-bs-target="#addNewItemModal">
         ➕ Add Brand New Item
     </button>
 </div>
 
 <div class="row">
-    <div class="col-md-9">
+    <div class="col-md-12">
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">📦 Current Live Stock</h5>
-                <small>Auto-calculated from all historical transactions</small>
             </div>
             <div class="card-body p-0">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+                <table class="table table-hover align-middle mb-0 table-bordered">
+                    <thead class="table-light text-center">
                         <tr>
-                            <th class="px-4 py-3">Item</th>
-                            <th class="text-center py-3 text-success">Total Received</th>
-                            <th class="text-center py-3 text-danger">Broken/Lost</th>
-                            <th class="text-center py-3 text-warning">Transferred Out</th>
-                            <th class="text-center py-3 bg-light fs-5">= Live Balance</th>
+                            <th>Image</th>
+                            <th>Item Name</th>
+                            <th>Make / Brand</th>
+                            <th>Color</th>
+                            <th>Received On</th>
+                            <th class="bg-light fs-6">Balance</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in live_items %}
-                        <tr style="cursor: pointer;" class="item-row table-hover-shadow"
-                            data-item-id="{{ item.id }}" data-item-name="{{ item.name }}"
-                            data-item-stock="{{ item.current_stock }}" data-item-brand="{{ item.brand|default:'N/A' }}"
-                            data-item-colour="{{ item.colour|default:'N/A' }}"
-                            data-item-img="{% if item.catalog_image %}{{ item.catalog_image.url }}{% else %}none{% endif %}"
-                            onclick="openQuickUpdateModal(this)">
+                        <tr class="item-row table-hover-shadow"
+                            data-item-id="{{ item.id }}"
+                            data-item-name="{{ item.name }}"
+                            data-item-stock="{{ item.current_stock }}"
+                            data-item-brand="{{ item.brand|default:'' }}"
+                            data-item-colour="{{ item.colour|default:'' }}"
+                            data-item-remarks="{{ item.remarks|default:'' }}"
+                            data-item-img="{% if item.catalog_image %}{{ item.catalog_image.url }}{% else %}none{% endif %}">
 
-                            <td class="px-4 py-3">
-                                <div class="d-flex align-items-center">
-                                    {% if item.catalog_image %}
-                                        <img src="{{ item.catalog_image.url }}" class="rounded shadow-sm me-3" style="width: 50px; height: 50px; object-fit: cover;">
-                                    {% else %}
-                                        <div class="bg-secondary rounded me-3 d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px; opacity: 0.2;"><small>No Img</small></div>
-                                    {% endif %}
-                                    <div>
-                                        <strong class="fs-6">{{ item.name }}</strong>
-                                        <br>
-                                        <span class="badge bg-secondary">{{ item.category.name|default:"Uncategorized" }}</span>
-                                        {% if item.colour %}<span class="badge bg-light text-dark border">{{ item.colour }}</span>{% endif %}
-                                    </div>
-                                </div>
+                            <td class="text-center py-2" style="width: 100px;">
+                                {% if item.catalog_image %}
+                                    <img src="{{ item.catalog_image.url }}" class="rounded shadow-sm" style="width: 60px; height: 60px; object-fit: cover; cursor: zoom-in;" onclick="openImagePreview('{{ item.catalog_image.url }}')">
+                                {% else %}
+                                    <div class="bg-secondary rounded mx-auto d-flex align-items-center justify-content-center text-white" style="width: 60px; height: 60px; opacity: 0.2;"><small>No Img</small></div>
+                                {% endif %}
+
                                 <div id="specs-html-{{ item.id }}" class="d-none">
                                     {% if item.specifications %}
-                                        <table class="table table-sm table-bordered mt-3 mb-0 bg-white">
-                                            <tbody>
-                                            {% for key, val in item.specifications.items %}
-                                                <tr><th class="bg-light text-muted small w-50 py-1">{{ key }}</th><td class="small py-1 fw-bold">{{ val }}</td></tr>
-                                            {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    {% else %}
-                                        <p class="text-muted small mt-2 mb-0 fst-italic">No custom specifications added.</p>
+                                        {% for key, val in item.specifications.items %}
+                                            <div class="row mb-2 spec-row-item">
+                                                <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_keys[]" value="{{ key }}" required></div>
+                                                <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_values[]" value="{{ val }}" required></div>
+                                                <div class="col-2"><button type="button" class="btn btn-sm btn-danger w-100" onclick="this.parentElement.parentElement.remove()">X</button></div>
+                                            </div>
+                                        {% endfor %}
                                     {% endif %}
                                 </div>
                             </td>
-                            <td class="text-center fw-bold text-success fs-5">+{{ item.total_received }}</td>
-                            <td class="text-center fw-bold text-danger fs-5">-{{ item.total_damaged }}</td>
-                            <td class="text-center fw-bold text-warning fs-5">-{{ item.total_transferred }}</td>
-                            <td class="text-center fw-bold bg-light fs-4 text-primary">{{ item.current_stock }}</td>
+
+                            <td class="text-center align-middle">
+                                <a href="javascript:void(0);" class="text-primary fw-bold text-decoration-none item-name-link" onclick="openQuickUpdateModal(this.closest('tr'))">{{ item.name }}</a><br>
+                                <span class="badge bg-secondary">{{ item.category.name|default:"Uncategorized" }}</span>
+                            </td>
+
+                            <td class="text-center align-middle">{{ item.brand|default:"-" }}</td>
+                            <td class="text-center align-middle">{{ item.colour|default:"-" }}</td>
+                            <td class="text-center align-middle small">{{ item.latest_transaction_date|date:"d.m.Y"|default:"-" }}</td>
+
+                            <td class="text-center align-middle fw-bold bg-light" style="font-size: 1.2rem;">
+                                <a href="javascript:void(0);" class="text-primary text-decoration-none balance-link d-block w-100" onclick="openTransactionModal(this.closest('tr'))">
+                                    {{ item.current_stock|default:"0" }}
+                                </a>
+
+                                <div id="tx-html-{{ item.id }}" class="d-none">
+                                    {% for tx in item.transactions.all %}
+                                    <tr>
+                                        <td>{{ tx.date|date:"d-m-Y" }}</td>
+                                        <td>
+                                            {% if tx.transaction_type == 'received' %}<span class="badge bg-success">Received</span>
+                                            {% elif tx.transaction_type == 'transfer_out' %}<span class="badge bg-warning text-dark">Transfer Out</span>
+                                            {% elif tx.transaction_type == 'damage_broken' %}<span class="badge bg-danger">Damage/Broken</span>
+                                            {% else %}<span class="badge bg-secondary">{{ tx.transaction_type }}</span>{% endif %}
+                                        </td>
+                                        <td class="fw-bold {% if tx.transaction_type == 'received' %}text-success{% else %}text-danger{% endif %}">
+                                            {% if tx.transaction_type == 'received' %}+{% else %}-{% endif %}{{ tx.quantity }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </div>
+                            </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="5" class="text-center py-5 text-muted">No items exist in this room yet.</td></tr>
+                        <tr><td colspan="6" class="text-center py-5 text-muted">No items exist in this room yet.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light"><h6 class="mb-0 text-muted fw-bold">Recent Activity</h6></div>
-            <div class="card-body p-2">
-                <ul class="list-group list-group-flush">
-                    {% for txn in recent_activity %}
-                    <li class="list-group-item px-2 py-3 border-bottom">
-                        <small class="text-muted d-block mb-1">{{ txn.date_recorded|date:"M d, Y" }}</small>
-                        <strong>{{ txn.item.name }}</strong>
-                        <div class="mt-1">
-                            {% if txn.transaction_type == 'RECEIPT' %}
-                                <span class="badge bg-success">+{{ txn.quantity }} Added</span>
-                            {% elif txn.transaction_type == 'DAMAGE' %}
-                                <span class="badge bg-danger">-{{ txn.quantity }} Damaged</span>
-                            {% else %}
-                                <span class="badge bg-warning text-dark">-{{ txn.quantity }} Moved</span>
-                            {% endif %}
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
             </div>
         </div>
     </div>
@@ -172,109 +137,73 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">📦 Add New Item to {{ room.name }}</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">📦 Add New Item</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-
             <form method="POST" action="{% url 'add_new_item_modal_submit' room.id %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-body bg-light p-4">
-
                     <div class="row mb-4">
-                        <div class="col-12 text-center position-relative">
-                            <label class="form-label fw-bold small text-primary d-block text-start mb-2">Item Image (Optional)</label>
-
+                        <div class="col-12 text-center">
+                            <label class="form-label fw-bold small text-primary d-block text-start">Upload Image</label>
                             <div class="d-inline-block position-relative">
-                                <input type="file" class="d-none" name="catalog_image" id="itemImageInput" accept="image/*" onchange="previewImage(this)">
-
-                                <label for="itemImageInput" class="custom-file-upload mb-0" id="uploadLabel">
+                                <input type="file" class="d-none" name="catalog_image" id="itemImageInput" accept="image/*" onchange="previewImage(this, 'image-preview-element', 'uploadPlaceholder', 'imagePreviewWrapper', 'removeImageBtn')">
+                                <label for="itemImageInput" class="custom-file-upload">
                                     <div class="upload-placeholder" id="uploadPlaceholder">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" class="bi bi-camera mb-2 text-secondary" viewBox="0 0 16 16">
-                                            <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z"/>
-                                            <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
-                                            <path d="M3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/>
-                                        </svg>
-                                        <span class="small fw-bold text-secondary mt-1" style="letter-spacing: 0.5px;">UPLOAD PHOTO</span>
+                                        <span class="small fw-bold text-secondary">CLICK TO UPLOAD</span>
                                     </div>
-
-                                    <div class="image-preview-wrapper" id="imagePreviewWrapper">
-                                        <img id="image-preview-element" src="#" alt="Preview">
+                                    <div class="image-preview-wrapper" id="imagePreviewWrapper" style="display:none;">
+                                        <img id="image-preview-element" src="#">
                                     </div>
                                 </label>
-
-                                <button type="button" class="remove-image-btn" id="removeImageBtn" onclick="clearImagePreview(event)">
-                                    &times;
-                                </button>
+                                <button type="button" class="remove-image-btn" id="removeImageBtn" onclick="clearImagePreview(event, 'itemImageInput', 'uploadPlaceholder', 'imagePreviewWrapper', 'removeImageBtn')">&times;</button>
                             </div>
                         </div>
                     </div>
-
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Category</label>
                             <select class="form-select border-dark shadow-sm" name="category" required>
-                                <option value="">-- Select Category --</option>
-                                {% for cat in categories %}
-                                    <option value="{{ cat.id }}">{{ cat.name }}</option>
-                                {% endfor %}
+                                <option value="">-- Select --</option>
+                                {% for cat in categories %} <option value="{{ cat.id }}">{{ cat.name }}</option> {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Item Name</label>
-                            <input type="text" class="form-control border-dark shadow-sm" name="item_name" placeholder="e.g. Television" required>
+                            <input type="text" class="form-control border-dark shadow-sm" name="item_name" required>
                         </div>
                     </div>
-
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Brand (Optional)</label>
-                            <input type="text" class="form-control border-dark shadow-sm" name="item_brand" placeholder="e.g. Samsung">
+                            <label class="form-label fw-bold small">Brand</label>
+                            <input type="text" class="form-control border-dark shadow-sm" name="item_brand">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Colour (Optional)</label>
-                            <input type="text" class="form-control border-dark shadow-sm" name="item_colour" placeholder="e.g. Black">
+                            <label class="form-label fw-bold small">Color</label>
+                            <input type="text" class="form-control border-dark shadow-sm" name="item_colour">
                         </div>
                     </div>
-
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Date</label>
-                            <input type="date" class="form-control border-dark shadow-sm" name="date_recorded" id="todayDateInput" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Received From</label>
-                            <input type="text" class="form-control border-dark shadow-sm" name="received_from" placeholder="e.g. Solan / H6" required>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small d-block">Specifications (Optional)</label>
-                            <button type="button" class="btn btn-outline-primary btn-sm w-100 shadow-sm py-2" onclick="addSpecRow()">
-                                + Add Custom Detail (e.g. Material)
-                            </button>
-                        </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Quantity</label>
-                            <input type="number" class="form-control border-dark shadow-sm" name="quantity" min="1" value="1" required>
+                            <input type="number" class="form-control border-dark shadow-sm" name="quantity" min="1" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Received On</label>
+                            <input type="date" class="form-control border-dark shadow-sm" name="received_on">
                         </div>
                     </div>
-
-                    <div id="specs-container" class="mt-2"></div>
-
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <label class="form-label fw-bold small">Remarks (Optional)</label>
-                            <input type="text" class="form-control border-dark shadow-sm" name="remarks" placeholder="Any additional notes...">
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Custom Specifications</label>
+                        <div id="specs-container" class="mb-2"></div>
+                        <button type="button" class="btn btn-outline-primary btn-sm w-100 shadow-sm" onclick="addSpecRow('specs-container')">+ Add Detail</button>
                     </div>
-
+                    <div class="mb-3 mt-3">
+                        <label class="form-label fw-bold small">Remarks</label>
+                        <textarea class="form-control border-dark shadow-sm" name="remarks" rows="2" placeholder="Enter remarks..."></textarea>
+                    </div>
                 </div>
-
-                <div class="modal-footer bg-light border-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success fw-bold px-4 shadow-sm">Save Item & Log Transaction</button>
-                </div>
+                <div class="modal-footer bg-light"><button type="submit" class="btn btn-success fw-bold px-4">Save Item</button></div>
             </form>
         </div>
     </div>
@@ -284,140 +213,289 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title">📦 Item Details & Update</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">✏️ Edit Item Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-
-            <div class="modal-body p-0">
-                <div class="row g-0">
-                    <div class="col-md-6 p-4 bg-light border-end">
-                        <div class="text-center mb-3">
-                            <img id="modalItemImg" src="" class="rounded shadow-sm d-none" style="width: 120px; height: 120px; object-fit: cover;">
+            <form id="quickUpdateForm" method="POST" action="" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body bg-light p-4">
+                    <div class="row">
+                        <div class="col-md-4 text-center border-end">
+                            <label class="form-label fw-bold small text-primary">Item Image</label>
+                            <div class="d-inline-block position-relative">
+                                <input type="file" class="d-none" name="catalog_image" id="editItemImageInput" accept="image/*" onchange="previewImage(this, 'edit-image-element', 'editUploadPlaceholder', 'editImagePreviewWrapper', 'editRemoveBtn')">
+                                <label for="editItemImageInput" class="custom-file-upload">
+                                    <div class="upload-placeholder" id="editUploadPlaceholder" style="display:none;">
+                                        <span class="small">Change Photo</span>
+                                    </div>
+                                    <div class="image-preview-wrapper" id="editImagePreviewWrapper" style="display:block;">
+                                        <img id="edit-image-element" src="#" alt="Preview">
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="alert alert-info mt-4 py-2 border-0 shadow-sm">
+                                <small class="text-muted d-block">Current Balance</small>
+                                <strong id="modalItemStock" class="fs-3 text-primary">0</strong>
+                            </div>
                         </div>
-                        <h4 id="modalItemName" class="text-primary fw-bold text-center mb-1"></h4>
-                        <p class="text-center text-muted small mb-1">Brand: <strong id="modalItemBrand" class="text-dark"></strong></p>
-                        <p class="text-center text-muted small mb-3">Colour: <strong id="modalItemColour" class="text-dark"></strong></p>
 
-                        <h6 class="fw-bold text-muted border-bottom pb-2">Specifications</h6>
-                        <div id="modalItemSpecs"></div>
-                    </div>
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Item Name</label>
+                                <input type="text" class="form-control border-dark shadow-sm" name="item_name" id="edit_item_name" required>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-bold small">Make / Brand</label>
+                                    <input type="text" class="form-control border-dark shadow-sm" name="item_brand" id="edit_item_brand">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-bold small">Color</label>
+                                    <input type="text" class="form-control border-dark shadow-sm" name="item_colour" id="edit_item_colour">
+                                </div>
+                            </div>
 
-                    <div class="col-md-6 p-4">
-                        <form id="quickUpdateForm" method="POST" action="">
-                            {% csrf_token %}
-                            <div class="alert alert-info py-2 mb-4 shadow-sm border-0 text-center">
-                                Live Stock: <strong id="modalItemStock" class="fs-4 d-block"></strong>
+                            <label class="form-label fw-bold small">Specifications</label>
+                            <div id="edit-specs-container" class="mb-2"></div>
+                            <button type="button" class="btn btn-outline-primary btn-sm w-100 shadow-sm" onclick="addSpecRow('edit-specs-container')">
+                                + Add Detail
+                            </button>
+
+                            <div class="mb-3 mt-3">
+                                <label class="form-label fw-bold small">Remarks</label>
+                                <textarea class="form-control border-dark shadow-sm" name="remarks" id="edit_item_remarks" rows="2" placeholder="Enter remarks..."></textarea>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold small text-muted">What happened?</label>
-                                <select class="form-select border-dark shadow-sm" name="transaction_type" required>
-                                    <option value="RECEIPT">🟢 Received More (+)</option>
-                                    <option value="DAMAGE">🔴 Damaged/Broken (-)</option>
-                                    <option value="TRANSFER">🟠 Transferred Out (-)</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold small text-muted">How many?</label>
-                                <input type="number" class="form-control border-dark shadow-sm" name="quantity" min="1" value="1" required>
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label fw-bold small text-muted">Remarks (Optional)</label>
-                                <input type="text" class="form-control" name="remarks" placeholder="e.g. Dropped while cleaning">
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">Save Update</button>
-                        </form>
+                        </div>
                     </div>
                 </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">📉 Manage Stock: <span id="txItemName" class="fw-bold"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light p-4">
+
+                <form id="addTransactionForm" method="POST" action="">
+                    {% csrf_token %}
+                    <div class="row mb-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Transaction Type</label>
+                            <select class="form-select border-dark shadow-sm" name="transaction_type" id="txTypeSelect" onchange="validateQuantity()" required>
+                                <option value="" disabled selected>-- Select Type --</option>
+                                <option value="received">Received (+)</option>
+                                <option value="transfer_out">Transfer Out (-)</option>
+                                <option value="damage_broken">Damage / Broken (-)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Quantity <span id="txStockLabel" class="badge bg-light text-primary ms-1"></span></label>
+                            <input type="number" class="form-control border-dark shadow-sm" name="transaction_quantity" id="txQuantityInput" min="1" oninput="validateQuantity()" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Date</label>
+                            <input type="date" class="form-control border-dark shadow-sm" name="transaction_date" required>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-success w-100 fw-bold shadow-sm">Submit</button>
+                        </div>
+                    </div>
+                </form>
+
+                <hr class="my-4 text-muted">
+
+                <h6 class="fw-bold mb-3 text-secondary">Recent Transactions</h6>
+                <div class="table-responsive bg-white border rounded shadow-sm" style="max-height: 250px; overflow-y: auto;">
+                    <table class="table table-sm table-hover table-bordered text-center align-middle mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Quantity Changed</th>
+                            </tr>
+                        </thead>
+                        <tbody id="txHistoryBody">
+                        </tbody>
+                    </table>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
 
+<div class="modal fade" id="imageExpandModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-transparent border-0 shadow-none">
+            <div class="text-end mb-2"><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <img id="expandedImg" src="" class="img-fluid rounded shadow-lg mx-auto d-block" style="max-height: 85vh;">
+        </div>
+    </div>
+</div>
+
 <script>
-    // Set today's date
-    document.addEventListener("DOMContentLoaded", function() {
-        const dateInput = document.getElementById('todayDateInput');
-        if (dateInput) {
-            dateInput.value = new Date().toISOString().split('T')[0];
-        }
-    });
-
-    // Custom Image Preview Logic
-    function previewImage(input) {
-        const previewWrapper = document.getElementById('imagePreviewWrapper');
-        const previewImg = document.getElementById('image-preview-element');
-        const placeholder = document.getElementById('uploadPlaceholder');
-        const removeBtn = document.getElementById('removeImageBtn');
-
+    // Unified Preview Logic
+    function previewImage(input, imgId, placeholderId, wrapperId, btnId) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                previewImg.src = e.target.result;
-                // Hide placeholder, show image and button
-                placeholder.style.display = 'none';
-                previewWrapper.style.display = 'block';
-                removeBtn.style.display = 'flex'; // Use flex to center the X
+                document.getElementById(imgId).src = e.target.result;
+                document.getElementById(placeholderId).style.display = 'none';
+                document.getElementById(wrapperId).style.display = 'block';
+                const btn = document.getElementById(btnId);
+                if (btn) btn.style.display = 'flex';
             }
             reader.readAsDataURL(input.files[0]);
         }
     }
 
-    // Function to clear the image and return to empty state
-    function clearImagePreview(event) {
-        // Prevent clicking the X from opening the file explorer
-        if(event) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-
-        const input = document.getElementById('itemImageInput');
-        const previewWrapper = document.getElementById('imagePreviewWrapper');
-        const previewImg = document.getElementById('image-preview-element');
-        const placeholder = document.getElementById('uploadPlaceholder');
-        const removeBtn = document.getElementById('removeImageBtn');
-
-        // Reset elements
-        input.value = "";
-        previewImg.src = "#";
-
-        // Show placeholder, hide image and button
-        placeholder.style.display = 'flex';
-        previewWrapper.style.display = 'none';
-        removeBtn.style.display = 'none';
+    function clearImagePreview(event, inputId, placeholderId, wrapperId, btnId) {
+        event.preventDefault();
+        document.getElementById(inputId).value = "";
+        document.getElementById(placeholderId).style.display = 'flex';
+        document.getElementById(wrapperId).style.display = 'none';
+        document.getElementById(btnId).style.display = 'none';
     }
 
-    // Dynamic Specifications Logic
-    function addSpecRow() {
-        const container = document.getElementById('specs-container');
-        const row = document.createElement('div');
-        row.className = 'row mb-2 animate-fade-in';
-        row.innerHTML = `
-            <div class="col-5"><input type="text" class="form-control form-control-sm border-dark shadow-sm" name="spec_keys[]" placeholder="Detail (e.g. Material)" required></div>
-            <div class="col-5"><input type="text" class="form-control form-control-sm border-dark shadow-sm" name="spec_values[]" placeholder="Value (e.g. Glass)" required></div>
+    // Dynamic Specs logic
+    function addSpecRow(containerId) {
+        const container = document.getElementById(containerId);
+        const div = document.createElement('div');
+        div.className = 'row mb-2';
+        div.innerHTML = `
+            <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_keys[]" placeholder="Detail" required></div>
+            <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_values[]" placeholder="Value" required></div>
             <div class="col-2"><button type="button" class="btn btn-sm btn-danger w-100" onclick="this.parentElement.parentElement.remove()">X</button></div>
         `;
-        container.appendChild(row);
+        container.appendChild(div);
     }
 
-    // Quick Update Modal Logic
-    function openQuickUpdateModal(rowElement) {
-        const itemId = rowElement.getAttribute('data-item-id');
-        const roomId = "{{ room.id }}";
+    // Open Edit Modal & Populate Data
+    function openQuickUpdateModal(row) {
+        const id = row.getAttribute('data-item-id');
+        const name = row.getAttribute('data-item-name');
+        const brand = row.getAttribute('data-item-brand');
+        const colour = row.getAttribute('data-item-colour');
+        const stock = row.getAttribute('data-item-stock');
+        const img = row.getAttribute('data-item-img');
+        const remarks = row.getAttribute('data-item-remarks');
 
-        document.getElementById('modalItemName').innerText = rowElement.getAttribute('data-item-name');
-        document.getElementById('modalItemStock').innerText = rowElement.getAttribute('data-item-stock');
-        document.getElementById('modalItemBrand').innerText = rowElement.getAttribute('data-item-brand');
-        document.getElementById('modalItemColour').innerText = rowElement.getAttribute('data-item-colour');
+        // Populate basic fields
+        document.getElementById('edit_item_name').value = name;
+        document.getElementById('edit_item_brand').value = brand;
+        document.getElementById('edit_item_colour').value = colour;
+        document.getElementById('modalItemStock').innerText = stock;
+        document.getElementById('edit_item_remarks').value = remarks;
 
-        const imgEl = document.getElementById('modalItemImg');
-        const itemImg = rowElement.getAttribute('data-item-img');
-        if (itemImg && itemImg !== 'none') { imgEl.src = itemImg; imgEl.classList.remove('d-none'); }
-        else { imgEl.classList.add('d-none'); }
+        // Image handling
+        const editImg = document.getElementById('edit-image-element');
+        const editPlaceholder = document.getElementById('editUploadPlaceholder');
+        const editWrapper = document.getElementById('editImagePreviewWrapper');
 
-        document.getElementById('modalItemSpecs').innerHTML = document.getElementById('specs-html-' + itemId).innerHTML;
-        document.getElementById('quickUpdateForm').action = `/room/${roomId}/item/${itemId}/quick-update/`;
+        if (img !== 'none') {
+            editImg.src = img;
+            editPlaceholder.style.display = 'none';
+            editWrapper.style.display = 'block';
+        } else {
+            editImg.src = '#';
+            editPlaceholder.style.display = 'flex';
+            editWrapper.style.display = 'none';
+        }
+
+        // Specifications handling
+        const specsSource = document.getElementById('specs-html-' + id);
+        const editContainer = document.getElementById('edit-specs-container');
+        if (specsSource) {
+            editContainer.innerHTML = specsSource.innerHTML;
+        } else {
+            editContainer.innerHTML = "";
+        }
+
+        // Set Form Action URL
+        document.getElementById('quickUpdateForm').action = `/room/{{ room.id }}/item/${id}/update/`;
 
         new bootstrap.Modal(document.getElementById('quickUpdateModal')).show();
+    }
+
+    // Open Transaction Modal
+    function openTransactionModal(row) {
+        const id = row.getAttribute('data-item-id');
+        const name = row.getAttribute('data-item-name');
+        const stock = row.getAttribute('data-item-stock') || 0; // Grab the current stock
+
+        // Set Modal Title
+        document.getElementById('txItemName').innerText = name;
+
+        // Set Form Action URL
+        document.getElementById('addTransactionForm').action = `/room/{{ room.id }}/item/${id}/add_transaction/`;
+
+        // Reset Inputs and Store Stock Data
+        const typeSelect = document.getElementById('txTypeSelect');
+        const qtyInput = document.getElementById('txQuantityInput');
+
+        typeSelect.value = "";
+        qtyInput.value = "";
+        qtyInput.dataset.currentStock = stock; // Store stock secretly in input dataset
+
+        // Initialize Validation
+        validateQuantity();
+
+        // Fetch and load transaction history
+        const historySource = document.getElementById('tx-html-' + id);
+        const historyBody = document.getElementById('txHistoryBody');
+
+        if (historySource && historySource.innerHTML.trim() !== "") {
+            historyBody.innerHTML = historySource.innerHTML;
+        } else {
+            historyBody.innerHTML = '<tr><td colspan="3" class="text-muted py-4">No transactions recorded yet.</td></tr>';
+        }
+
+        // Show the Modal
+        new bootstrap.Modal(document.getElementById('transactionModal')).show();
+    }
+
+    // Function to prevent stock deductions below 0
+    function validateQuantity() {
+        const typeSelect = document.getElementById('txTypeSelect').value;
+        const qtyInput = document.getElementById('txQuantityInput');
+        const stockLabel = document.getElementById('txStockLabel');
+        const currentStock = parseInt(qtyInput.dataset.currentStock) || 0;
+
+        // Update label text to help user
+        stockLabel.innerText = `(Available: ${currentStock})`;
+
+        // If the user selects a deduction type...
+        if (typeSelect === 'transfer_out' || typeSelect === 'damage_broken') {
+            // Force the HTML Max attribute to current stock
+            qtyInput.max = currentStock;
+            stockLabel.classList.remove('text-primary');
+            stockLabel.classList.add('text-danger');
+
+            // Auto-correct if they typed something too high before changing the select dropdown
+            if (parseInt(qtyInput.value) > currentStock) {
+                qtyInput.value = currentStock;
+            }
+        } else {
+            // Remove the Max restriction if they are adding stock
+            qtyInput.removeAttribute('max');
+            stockLabel.classList.remove('text-danger');
+            stockLabel.classList.add('text-primary');
+        }
+    }
+
+    function openImagePreview(url) {
+        document.getElementById('expandedImg').src = url;
+        new bootstrap.Modal(document.getElementById('imageExpandModal')).show();
     }
 </script>
 {% endblock %}
