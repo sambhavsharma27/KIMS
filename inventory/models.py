@@ -27,24 +27,27 @@ class Location(TimeStampedModel):
 class Building(TimeStampedModel):
     location = models.ForeignKey(Location, on_delete=models.PROTECT)
     name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='building_photos/', blank=True, null=True)
 
-    def __str__(self): 
+    def __str__(self):
         return f"{self.name} ({self.location.name})"
 
 
 class Floor(TimeStampedModel):
     building = models.ForeignKey(Building, on_delete=models.PROTECT)
     name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='floor_photos/', blank=True, null=True)
 
-    def __str__(self): 
+    def __str__(self):
         return f"{self.name} - {self.building.name}"
 
 
 class Room(TimeStampedModel):
     floor = models.ForeignKey(Floor, on_delete=models.PROTECT)
     name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='room_photos/', blank=True, null=True)
 
-    def __str__(self): 
+    def __str__(self):
         return self.name
 
 
