@@ -22,6 +22,9 @@ urlpatterns = [
     path('room/<int:room_id>/ledger/', views.room_ledger, name='room_ledger'),
     path('room/<int:room_id>/item/<int:item_id>/quick-update/', views.quick_update_stock, name='quick_update_stock'),
     path('room/<int:room_id>/add-new-item-modal/', views.add_new_item_from_modal_view, name='add_new_item_modal_submit'),
+
+    # --- SPATIAL IMAGE UPLOAD (AJAX) ---
+    path('upload-image/<str:model_type>/<int:object_id>/', views.upload_spatial_image, name='upload_spatial_image'),
 ]
 
 if settings.DEBUG:

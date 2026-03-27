@@ -5,8 +5,9 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Sum, Q, F
 from django.db.models.functions import Coalesce
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
-# NO MORE SUBCATEGORY IMPORT!
 from .models import Location, Building, Floor, Room, Category, Item, InventoryTransaction
 
 # ==========================================
@@ -239,3 +240,36 @@ def quick_update_stock(request, room_id, item_id):
         return redirect('room_ledger', room_id=room.id)
 
     return redirect('room_ledger', room_id=room.id)
+
+
+# ==========================================
+# 5. SPATIAL IMAGE UPLOAD (AJAX)
+# ==========================================
+@login_required
+@require_POST
+def upload_spatial_image(request, model_type, object_id):
+    """Handle image uploads for Building, Floor, and Room cards."""
+    MODEL_MAP = {
+        'building': Building,
+        'floor': Floor,
+        'room': Room,
+    }
+
+    model_class = MODEL_MAP.get(model_type)
+    if not model_class:
+        return JsonResponse({'success': False, 'error': 'Invalid type.'}, status=400)
+
+    obj = get_object_or_404(model_class, id=object_id)
+    image_file = request.FILES.get('image')
+
+    if not image_file:
+        return JsonResponse({'success': False, 'error': 'No image provided.'}, status=400)
+
+    # Delete old image file if replacing
+    if obj.image:
+        obj.image.delete(save=False)
+
+    obj.image = image_file
+    obj.save()
+
+    return JsonResponse({'success': True, 'image_url': obj.image.url})
