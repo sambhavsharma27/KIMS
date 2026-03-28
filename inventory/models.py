@@ -27,24 +27,27 @@ class Location(TimeStampedModel):
 class Building(TimeStampedModel):
     location = models.ForeignKey(Location, on_delete=models.PROTECT)
     name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='building_photos/', blank=True, null=True)
 
-    def __str__(self): 
+    def __str__(self):
         return f"{self.name} ({self.location.name})"
 
 
 class Floor(TimeStampedModel):
     building = models.ForeignKey(Building, on_delete=models.PROTECT)
     name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='floor_photos/', blank=True, null=True)
 
-    def __str__(self): 
+    def __str__(self):
         return f"{self.name} - {self.building.name}"
 
 
 class Room(TimeStampedModel):
     floor = models.ForeignKey(Floor, on_delete=models.PROTECT)
     name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='room_photos/', blank=True, null=True)
 
-    def __str__(self): 
+    def __str__(self):
         return self.name
 
 
@@ -74,7 +77,7 @@ class Item(TimeStampedModel):
 
     quantity = models.IntegerField(default=0)
 
-    remarks = models.TextField(blank=True, null=True)
+    remarks = models.CharField(blank=True, null=True)
     def __str__(self): 
         # Cleanly formats name e.g., "Samsung Television - Black"
         parts = filter(None, [self.brand, self.name])
@@ -97,7 +100,7 @@ class InventoryTransaction(models.Model):
     incident_photo = models.ImageField(upload_to='incident_photos/', blank=True, null=True)
     
     date_recorded = models.DateField(default=timezone.now)
-    remarks = models.TextField(blank=True, null=True)
+    remarks = models.CharField(blank=True, null=True)
     
     # NEW: Origin tracker for when items are introduced
     received_from = models.CharField(max_length=100, blank=True, null=True, help_text="e.g. Solan, H6, Chandigarh")

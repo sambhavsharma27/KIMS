@@ -13,9 +13,10 @@ class LocationAdmin(admin.ModelAdmin):
 
 @admin.register(Building)
 class BuildingAdmin(admin.ModelAdmin):
-    list_display = ('name', 'location', 'created_at')
+    list_display = ('name', 'location', 'image', 'created_at')
     readonly_fields = ('created_at', 'updated_at')
-    list_filter = ('location',) # Adds a filter sidebar!
+    list_filter = ('location',)
+    search_fields = ('name',)
 
 # --- CATALOG ADMIN ---
 @admin.register(Item)
@@ -37,9 +38,21 @@ class TransactionAdmin(admin.ModelAdmin):
     list_filter = ('transaction_type', 'date_recorded') 
     search_fields = ('item__name', 'remarks')
 
-# --- BASIC REGISTRATIONS (For the simpler tables) ---
-admin.site.register(Floor)
-admin.site.register(Room)
+# --- SPATIAL ADMIN (Floors & Rooms with image support) ---
+@admin.register(Floor)
+class FloorAdmin(admin.ModelAdmin):
+    list_display = ('name', 'building', 'image', 'created_at')
+    readonly_fields = ('created_at', 'updated_at')
+    list_filter = ('building',)
+    search_fields = ('name',)
+
+@admin.register(Room)
+class RoomAdmin(admin.ModelAdmin):
+    list_display = ('name', 'floor', 'image', 'created_at')
+    readonly_fields = ('created_at', 'updated_at')
+    list_filter = ('floor',)
+    search_fields = ('name',)
+
+# --- BASIC REGISTRATIONS ---
 admin.site.register(Category)
-# DELETED: admin.site.register(SubCategory)
 admin.site.register(UserProfile)

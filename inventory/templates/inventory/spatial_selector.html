@@ -1,33 +1,76 @@
 {% extends 'inventory/base.html' %}
 
 {% block content %}
+
+<!-- Breadcrumb -->
 <nav aria-label="breadcrumb" class="bg-light p-3 rounded mb-4 shadow-sm">
     <ol class="breadcrumb mb-0 fs-5">
-        <li class="breadcrumb-item fw-bold text-primary">{{ location.name }}</li>
-        
+        <li class="breadcrumb-item fw-bold text-primary">
+            <a href="{% url 'dashboard' %}" class="text-decoration-none">{{ location.name }}</a>
+        </li>
         {% if building %}
-            <li class="breadcrumb-item"><a href="{% url 'select_floor' building.id %}" class="text-decoration-none text-secondary">{{ building.name }}</a></li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'select_building' location.id %}" class="text-decoration-none text-secondary">{{ building.name }}</a>
+            </li>
         {% endif %}
-        
         {% if floor %}
-            <li class="breadcrumb-item"><a href="{% url 'select_room' floor.id %}" class="text-decoration-none text-secondary">{{ floor.name }}</a></li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'select_floor' building.id %}" class="text-decoration-none text-secondary">{{ floor.name }}</a>
+            </li>
         {% endif %}
     </ol>
 </nav>
 
 <h3 class="mb-4 text-muted">{{ step_name }}</h3>
 
-<div class="row">
+<!-- Cards Grid -->
+<div class="row g-4">
     {% for item in options %}
-    <div class="col-md-4 mb-4">
-        <a href="{% url next_url_name item.id %}" class="text-decoration-none text-dark">
-            <div class="card h-100 shadow-sm transition-card border-0 bg-white" style="cursor: pointer;">
-                <div class="card-body text-center p-5">
-                    <h1 class="display-3 mb-3 text-primary">🏢</h1>
-                    <h4 class="card-title">{{ item.name }}</h4>
+    <div class="col-sm-6 col-md-4 col-lg-3">
+        <div class="card spatial-card h-100 border-0 shadow-sm overflow-hidden position-relative">
+
+            <!-- Camera upload button (top-right) -->
+            <label class="camera-btn position-absolute" title="Change image"
+                   for="img-upload-{{ item.id }}" onclick="event.stopPropagation();">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4z"/>
+                    <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5m0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0"/>
+                </svg>
+            </label>
+            <input type="file" accept="image/*" class="d-none" id="img-upload-{{ item.id }}"
+                   onchange="uploadImage(this, '{% if step_name == 'Select a Building' %}building{% elif step_name == 'Select a Floor' %}floor{% else %}room{% endif %}', '{{ item.id }}')">
+
+            <!-- Clickable link wrapping image + name -->
+            <a href="{% url next_url_name item.id %}" class="text-decoration-none text-dark d-flex flex-column h-100">
+
+                <!-- Image Area -->
+                <div class="card-img-area" id="img-area-{{ item.id }}">
+                    {% if item.image %}
+                        <img src="{{ item.image.url }}" alt="{{ item.name }}" class="card-img-cover">
+                    {% else %}
+                        <!-- Sober placeholder matching site theme -->
+                        <div class="placeholder-bg placeholder-bg-{{ step_name|slugify }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" fill="rgba(255,255,255,0.6)" viewBox="0 0 16 16">
+                                {% if step_name == 'Select a Building' %}
+                                    <path d="M4 2.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zM4 5.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zM7.5 5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm2.5.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zM4.5 8a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm2.5.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z"/>
+                                    <path d="M2 1a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1zm11 0H3v14h3v-2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V15h3z"/>
+                                {% elif step_name == 'Select a Floor' %}
+                                    <path d="M7.765 1.559a.5.5 0 0 1 .47 0l7.5 4a.5.5 0 0 1 0 .882l-7.5 4a.5.5 0 0 1-.47 0l-7.5-4a.5.5 0 0 1 0-.882z"/>
+                                    <path d="m2.125 8.567-1.86.992a.5.5 0 0 0 0 .882l7.5 4a.5.5 0 0 0 .47 0l7.5-4a.5.5 0 0 0 0-.882l-1.86-.992-5.17 2.756a1.5 1.5 0 0 1-1.41 0z"/>
+                                {% else %}
+                                    <path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM2.5 14V7.707l5.5-5.5 5.5 5.5V14H10v-4a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v4z"/>
+                                {% endif %}
+                            </svg>
+                        </div>
+                    {% endif %}
                 </div>
-            </div>
-        </a>
+
+                <!-- Card Name -->
+                <div class="card-body text-center py-3">
+                    <h5 class="card-title fw-bold mb-0">{{ item.name }}</h5>
+                </div>
+            </a>
+        </div>
     </div>
     {% empty %}
     <div class="col-12 text-center py-5">
@@ -37,7 +80,114 @@
 </div>
 
 <style>
-    .transition-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-    .transition-card:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; border: 2px solid #0d6efd !important;}
+    /* --- Card --- */
+    .spatial-card {
+        border-radius: 10px;
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
+        cursor: pointer;
+        background: #fff;
+    }
+    .spatial-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+        border: 2px solid #0d6efd !important;
+    }
+
+    /* --- Image area --- */
+    .card-img-area {
+        width: 100%;
+        height: 180px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #e9ecef;
+    }
+    .card-img-cover {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.34s ease;
+    }
+    .spatial-card:hover .card-img-cover {
+        transform: scale(1.04);
+    }
+
+    /* Sober placeholder backgrounds matching site palette */
+    .placeholder-bg {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    /* Dark charcoal — matches the bg-dark navbar */
+    .placeholder-bg-select-a-building {
+        background-color: #343a40;
+    }
+    /* Muted slate — a step lighter */
+    .placeholder-bg-select-a-floor {
+        background-color: #495057;
+    }
+    /* Soft steel — neutral and clean */
+    .placeholder-bg-select-a-room {
+        background-color: #5a6268;
+    }
+
+    /* --- Camera button --- */
+    .camera-btn {
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.9);
+        border: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+        color: #555;
+    }
+    .camera-btn:hover {
+        background: #fff;
+        color: #0d6efd;
+        border-color: #0d6efd;
+    }
 </style>
+
+<script>
+function uploadImage(input, modelType, objectId) {
+    if (!input.files || !input.files[0]) return;
+
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('image', file);
+
+    // Get CSRF token from cookie
+    const csrfToken = document.cookie.split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1];
+
+    fetch(`/upload-image/${modelType}/${objectId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Replace the image area contents with the new image
+            const area = document.getElementById('img-area-' + objectId);
+            area.innerHTML = `<img src="${data.image_url}" alt="Image" class="card-img-cover">`;
+        } else {
+            alert('Upload failed: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(() => alert('Upload failed. Please try again.'));
+}
+</script>
+
 {% endblock %}
