@@ -270,11 +270,17 @@
                             <input type="date" class="form-control modern-input" name="received_on" required>
                         </div>
 
-                        <div class="col-12">
-                            <label class="form-label fw-semibold" >Received From</label>
-                            <input type="text" class="form-control modern-input" name="received_from"
-                                list="locationsList" placeholder="Type or select location" required>
-                        </div>
+                       <div class="col-12">
+    <label class="form-label fw-semibold">Received From</label>
+    <input type="text" class="form-control modern-input" name="received_from"
+        list="locationsList" placeholder="Type or select location" required>
+
+    <datalist id="locationsList">
+        <option value="Head Office">
+        <option value="Main Warehouse">
+        <option value="Local Market">
+        </datalist>
+</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">Custom Specifications</label>
@@ -382,49 +388,32 @@
                 <h5 class="modal-title">📦 Item Details & Update</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body bg-light p-4">
+            <div class="modal-body p-0">
+                <div class="row g-0">
+                    <div class="col-md-5 p-4 bg-white border-end d-flex flex-column align-items-center justify-content-center">
+                        <img id="txItemImage" src="" alt="Item Image" class="img-fluid rounded shadow-sm mb-3" style="max-height: 120px; object-fit: contain; display: none;">
+                        <h3 id="txItemName" class="fw-bold text-primary mb-1">Item Name</h3>
+                        <small class="text-muted mb-4">Brand: <span id="txItemBrand">-</span></small>
 
-                <form id="addTransactionForm" method="POST" action="">
-                    {% csrf_token %}
-                    <div class="row mb-3 align-items-end">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold small">Transaction Type</label>
-                            <select class="form-select border-dark shadow-sm" name="transaction_type" id="txTypeSelect" onchange="validateQuantity()" required>
-                                <option value="" disabled selected>-- Select Type --</option>
-                                <option value="received">Received (+)</option>
-                                <option value="transfer_out">Transfer Out (-)</option>
-                                <option value="damage_broken">Damage / Broken (-)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold small">Quantity <span id="txStockLabel" class="badge bg-light text-primary ms-1"></span></label>
-                            <input type="number" class="form-control border-dark shadow-sm" name="transaction_quantity" id="txQuantityInput" min="1" oninput="validateQuantity()" required placeholder="1">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold small">Date</label>
-                            <input type="date" class="form-control border-dark shadow-sm" name="transaction_date" required>
-                        </div>
-
-                        <div class="d-flex justify-content-between text-center gap-2 mb-4">
-                            <div class="border rounded p-2 w-100 shadow-sm">
-                                <small class="text-muted d-block" style="font-size: 0.8rem;">Received</small>
-                                <span class="fs-4 text-success fw-bold" id="txStatReceived">0</span>
+                        <div class="d-flex justify-content-between text-center gap-2 w-100">
+                            <div class="border rounded p-2 w-100 shadow-sm bg-light">
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">Received</small>
+                                <span class="fs-5 text-success fw-bold" id="txStatReceived">0</span>
                             </div>
-                            <div class="border rounded p-2 w-100 shadow-sm">
-                                <small class="text-muted d-block" style="font-size: 0.8rem;">Damaged</small>
-                                <span class="fs-4 text-danger fw-bold" id="txStatDamaged">0</span>
+                            <div class="border rounded p-2 w-100 shadow-sm bg-light">
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">Damaged</small>
+                                <span class="fs-5 text-danger fw-bold" id="txStatDamaged">0</span>
                             </div>
-                            <div class="border rounded p-2 w-100 shadow-sm">
-                                <small class="text-muted d-block" style="font-size: 0.8rem;">Transferred</small>
-                                <span class="fs-4 text-warning fw-bold" id="txStatTransferred">0</span>
+                            <div class="border rounded p-2 w-100 shadow-sm bg-light">
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">Transferred</small>
+                                <span class="fs-5 text-warning fw-bold" id="txStatTransferred">0</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-md-6 p-4 bg-white">
+                    <div class="col-md-7 p-4 bg-light">
                         <form id="addTransactionForm" method="POST" action="">
                             {% csrf_token %}
-
                             <div class="mb-3">
                                 <label class="form-label fw-bold text-dark small mb-1">What happened?</label>
                                 <select class="form-select border-dark shadow-sm" name="transaction_type" id="txTypeSelect" onchange="validateQuantity()" required>
@@ -435,31 +424,30 @@
                                 </select>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label fw-bold text-dark small mb-1">How many? <span id="txStockLabel" class="badge bg-light text-primary ms-1"></span></label>
-                                <input type="number" class="form-control border-dark shadow-sm" name="transaction_quantity" id="txQuantityInput" min="1" oninput="validateQuantity()" required>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold text-dark small mb-1">Date</label>
-                                <input type="date" class="form-control border-dark shadow-sm" name="transaction_date" required>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-bold text-dark small mb-1">How many? <span id="txStockLabel" class="badge bg-light text-primary ms-1"></span></label>
+                                    <input type="number" class="form-control border-dark shadow-sm" name="transaction_quantity" id="txQuantityInput" min="1" oninput="validateQuantity()" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-bold text-dark small mb-1">Date</label>
+                                    <input type="date" class="form-control border-dark shadow-sm" name="transaction_date" required>
+                                </div>
                             </div>
 
                             <div class="mb-4">
-                                <label class="form-label fw-bold text-dark small mb-1">Remarks*</label>
-                                <input type="text" class="form-control border-dark shadow-sm" name="remarks" placeholder="e.g. Dropped while cleaning" required>
+                                <label class="form-label fw-bold text-dark small mb-1">Remarks (Optional)</label>
+                                <input type="text" class="form-control border-dark shadow-sm" name="remarks" placeholder="e.g. Dropped while cleaning">
                             </div>
 
                             <button type="submit" class="btn btn-primary w-100 btn-lg fw-bold shadow-sm" style="font-size: 1.1rem;">Save Update</button>
                         </form>
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 <div class="modal fade" id="imageExpandModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content bg-transparent border-0 shadow-none">
@@ -622,33 +610,40 @@
         const stock = row.getAttribute('data-item-stock') || 0;
         const img = row.getAttribute('data-item-img'); // Grab image from row
 
-        // Populate the Left Panel (Stats & Info)
-        document.getElementById('txItemName').innerText = name;
-        document.getElementById('txItemBrand').innerText = brand;
-        document.getElementById('txStatReceived').innerText = row.getAttribute('data-item-received') || '0';
-        document.getElementById('txStatDamaged').innerText = row.getAttribute('data-item-damaged') || '0';
-        document.getElementById('txStatTransferred').innerText = row.getAttribute('data-item-transferred') || '0';
+        // Populate the Left Panel (Stats & Info) with Null Checks to prevent JS crash
+        if (document.getElementById('txItemName')) document.getElementById('txItemName').innerText = name;
+        if (document.getElementById('txItemBrand')) document.getElementById('txItemBrand').innerText = brand;
+        if (document.getElementById('txStatReceived')) document.getElementById('txStatReceived').innerText = row.getAttribute('data-item-received') || '0';
+        if (document.getElementById('txStatDamaged')) document.getElementById('txStatDamaged').innerText = row.getAttribute('data-item-damaged') || '0';
+        if (document.getElementById('txStatTransferred')) document.getElementById('txStatTransferred').innerText = row.getAttribute('data-item-transferred') || '0';
 
         // Display Image if it exists
         const txImgElement = document.getElementById('txItemImage');
-        if (img && img !== 'none') {
-            txImgElement.src = img;
-            txImgElement.style.display = 'inline-block';
-        } else {
-            txImgElement.src = '';
-            txImgElement.style.display = 'none';
+        if (txImgElement) {
+            if (img && img !== 'none') {
+                txImgElement.src = img;
+                txImgElement.style.display = 'inline-block';
+            } else {
+                txImgElement.src = '';
+                txImgElement.style.display = 'none';
+            }
         }
 
         // Set Form Action URL
-        document.getElementById('addTransactionForm').action = `/room/{{ room.id }}/item/${id}/add_transaction/`;
+        const formElement = document.getElementById('addTransactionForm');
+        if (formElement) {
+            formElement.action = `/room/{{ room.id }}/item/${id}/add_transaction/`;
+        }
 
         // Reset Inputs and Store Stock Data
         const typeSelect = document.getElementById('txTypeSelect');
         const qtyInput = document.getElementById('txQuantityInput');
 
-        typeSelect.value = "";
-        qtyInput.value = "";
-        qtyInput.dataset.currentStock = stock;
+        if (typeSelect) typeSelect.value = "";
+        if (qtyInput) {
+            qtyInput.value = "";
+            qtyInput.dataset.currentStock = stock;
+        }
 
         validateQuantity();
 
@@ -658,27 +653,37 @@
 
     // Function to prevent stock deductions below 0
     function validateQuantity() {
-        const typeSelect = document.getElementById('txTypeSelect').value;
+        const typeSelect = document.getElementById('txTypeSelect');
         const qtyInput = document.getElementById('txQuantityInput');
         const stockLabel = document.getElementById('txStockLabel');
+
+        // Safety check to ensure elements exist
+        if (!typeSelect || !qtyInput) return;
+
         const currentStock = parseInt(qtyInput.dataset.currentStock) || 0;
 
         // Update label text to help user
-        stockLabel.innerText = `(Available: ${currentStock})`;
+        if (stockLabel) {
+            stockLabel.innerText = `(Available: ${currentStock})`;
+        }
 
         // If the user selects a deduction type...
-        if (typeSelect === 'transfer_out' || typeSelect === 'damage_broken') {
+        if (typeSelect.value === 'transfer_out' || typeSelect.value === 'damage_broken') {
             qtyInput.max = currentStock;
-            stockLabel.classList.remove('text-primary');
-            stockLabel.classList.add('text-danger');
+            if (stockLabel) {
+                stockLabel.classList.remove('text-primary');
+                stockLabel.classList.add('text-danger');
+            }
 
             if (parseInt(qtyInput.value) > currentStock) {
                 qtyInput.value = currentStock;
             }
         } else {
             qtyInput.removeAttribute('max');
-            stockLabel.classList.remove('text-danger');
-            stockLabel.classList.add('text-primary');
+            if (stockLabel) {
+                stockLabel.classList.remove('text-danger');
+                stockLabel.classList.add('text-primary');
+            }
         }
     }
 
