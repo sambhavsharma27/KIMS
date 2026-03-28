@@ -1,8 +1,12 @@
 {% extends 'inventory/base.html' %}
+{% load static %}
 
 {% block content %}
+
+<link rel="stylesheet" href="{% static 'css/inventory-ui.css' %}">
 <style>
     /* Advanced Image Upload & UI Styling */
+    
     .custom-file-upload {
         border: 2px dashed #0d6efd;
         border-radius: 12px;
@@ -18,6 +22,7 @@
         position: relative;
         transition: all 0.2s;
     }
+    
     .custom-file-upload:hover { background-color: #e9ecef; border-color: #0a58ca; }
     .upload-placeholder { display: flex; flex-direction: column; align-items: center; color: #6c757d; }
     .image-preview-wrapper { width: 100%; height: 100%; border-radius: 10px; overflow: hidden; }
@@ -30,6 +35,89 @@
     }
     .item-name-link:hover, .balance-link:hover { text-decoration: underline !important; cursor: pointer; }
     .table-hover-shadow:hover { background-color: rgba(0,0,0,0.02); }
+    /* ===== Remarks Styling ===== */
+
+
+/* ===== Custom Specifications UI Fix ===== */
+
+.spec-input {
+    border: none !important;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.spec-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(13,110,253,0.15);
+    background: #fff;
+}
+
+/* Small Red Remove Button */
+.remove-btn {
+    background: #dc3545;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    font-size: 12px;
+    padding: 2px 6px;
+    height: 28px;
+    width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-btn:hover {
+    background: #bb2d3b;
+}
+
+/* Smaller Add Button */
+.add-spec-btn {
+    font-size: 13px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px dashed #0d6efd;
+    background: #f0f6ff;
+    color: #0d6efd;
+}
+
+.add-spec-btn:hover {
+    background: #e7f1ff;
+}
+
+/* Reduce spacing */
+.spec-row {
+    margin-bottom: 6px !important;
+}
+/* ===== Remarks Styling ===== */
+
+.remarks-input {
+    border: none !important;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    resize: none; /* optional: remove drag resize */
+}
+
+.remarks-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(13,110,253,0.15);
+    background: #fff;
+}
+/* Top Form Fields - Black Border */
+.modern-input {
+    border: 1px solid #000 !important;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    background: #fff;
+}
+
+/* Focus Effect (keep modern feel) */
+
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
@@ -38,7 +126,7 @@
         <small class="text-muted fw-bold">📍 {{ location.name }} &rarr; {{ building.name }} &rarr; {{ floor.name }}</small>
     </div>
     <button type="button" class="btn btn-success shadow-sm btn-lg fw-bold border-dark" data-bs-toggle="modal" data-bs-target="#addNewItemModal">
-        ➕ Add Brand New Item
+        ➕ Add New Item
     </button>
 </div>
 
@@ -82,9 +170,9 @@
                                     {% if item.specifications %}
                                         {% for key, val in item.specifications.items %}
                                             <div class="row mb-2 spec-row-item">
-                                                <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_keys[]" value="{{ key }}" required></div>
-                                                <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_values[]" value="{{ val }}" required></div>
-                                                <div class="col-2"><button type="button" class="btn btn-sm btn-danger w-100" onclick="this.parentElement.parentElement.remove()">X</button></div>
+                                                <div class="col-5"><input type="text" class="form-control form-control-sm spec-input" name="spec_keys[]" value="{{ key }}" required></div>
+                                                <div class="col-5"><input type="text" class="form-control form-control-sm spec-input" name="spec_values[]" value="{{ val }}" required></div>
+                                                <div class="col-2"><button type="button" class="remove-btn" onclick="this.parentElement.parentElement.remove()">X</button></div>
                                             </div>
                                         {% endfor %}
                                     {% endif %}
@@ -160,43 +248,55 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row mb-3">
+                    <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Category</label>
-                            <select class="form-select border-dark shadow-sm" name="category" required>
+                            <label class="form-label fw-semibold">Category</label>
+                            <select class="form-control modern-input" name="category" required>
                                 <option value="">-- Select --</option>
-                                {% for cat in categories %} <option value="{{ cat.id }}">{{ cat.name }}</option> {% endfor %}
+                                {% for cat in categories %}
+                                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Item Name</label>
-                            <input type="text" class="form-control border-dark shadow-sm" name="item_name" required>
+                            <label class="form-label fw-semibold">Item Name</label>
+                            <input type="text" class="form-control modern-input" name="item_name" required>
                         </div>
-                    </div>
-                    <div class="row mb-3">
+
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Brand</label>
-                            <input type="text" class="form-control border-dark shadow-sm" name="item_brand">
+                            <label class="form-label fw-semibold">Quantity</label>
+                            <input type="number" class="form-control modern-input" name="quantity" min="1" required>
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Color</label>
-                            <input type="text" class="form-control border-dark shadow-sm" name="item_colour">
+                            <label class="form-label fw-semibold">Received On</label>
+                            <input type="date" class="form-control modern-input" name="received_on" required>
                         </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Quantity</label>
-                            <input type="number" class="form-control border-dark shadow-sm" name="quantity" min="1" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Received On</label>
-                            <input type="date" class="form-control border-dark shadow-sm" name="received_on">
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" >Received From</label>
+                            <input type="text" class="form-control modern-input" name="received_from"
+                                list="locationsList" placeholder="Type or select location" required>
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">Custom Specifications</label>
-                        <div id="specs-container" class="mb-2"></div>
-                        <button type="button" class="btn btn-outline-primary btn-sm w-100 shadow-sm" onclick="addSpecRow('specs-container')">+ Add Detail</button>
+                        <div id="specs-container" class="mb-2">
+                            <div class="row mb-2">
+                                <div class="col-5"><input type="text" class="form-control form-control-sm border-dark bg-light" name="spec_keys[]" value="Brand" readonly></div>
+                                <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_values[]" placeholder="e.g. Samsung" ></div>
+                                <div class="col-2"><button type="button" class="remove-btn" onclick="this.parentElement.parentElement.remove()">X</button></div>
+                                <div class="col-2"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-5"><input type="text" class="form-control form-control-sm border-dark bg-light" name="spec_keys[]" value="Colour" readonly></div>
+                                <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_values[]" placeholder="e.g. Black" ></div>
+                                <div class="col-2"><button type="button" class="remove-btn" onclick="this.parentElement.parentElement.remove()">X</button></div>
+                                <div class="col-2"></div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn w-100 mt-2 add-spec-btn" onclick="addSpecRow('specs-container')">+ Add Detail</button>
                     </div>
                     <div class="mb-3 mt-3">
                         <label class="form-label fw-bold small">Remarks</label>
@@ -257,7 +357,9 @@
 
                             <label class="form-label fw-bold small">Specifications</label>
                             <div id="edit-specs-container" class="mb-2"></div>
-                            <button type="button" class="btn btn-outline-primary btn-sm w-100 shadow-sm" onclick="addSpecRow('edit-specs-container')">
+                            <button type="button"
+                                class="btn w-100 mt-2 add-spec-btn"
+                                onclick="addSpecRow('edit-specs-container')">
                                 + Add Detail
                             </button>
 
@@ -300,7 +402,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small">Quantity <span id="txStockLabel" class="badge bg-light text-primary ms-1"></span></label>
-                            <input type="number" class="form-control border-dark shadow-sm" name="transaction_quantity" id="txQuantityInput" min="1" oninput="validateQuantity()" required>
+                            <input type="number" class="form-control border-dark shadow-sm" name="transaction_quantity" id="txQuantityInput" min="1" oninput="validateQuantity()" required placeholder="1">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small">Date</label>
@@ -369,16 +471,25 @@
 
     // Dynamic Specs logic
     function addSpecRow(containerId) {
-        const container = document.getElementById(containerId);
-        const div = document.createElement('div');
-        div.className = 'row mb-2';
-        div.innerHTML = `
-            <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_keys[]" placeholder="Detail" required></div>
-            <div class="col-5"><input type="text" class="form-control form-control-sm border-dark" name="spec_values[]" placeholder="Value" required></div>
-            <div class="col-2"><button type="button" class="btn btn-sm btn-danger w-100" onclick="this.parentElement.parentElement.remove()">X</button></div>
-        `;
-        container.appendChild(div);
-    }
+    const container = document.getElementById(containerId);
+    const div = document.createElement('div');
+    div.className = 'row spec-row';
+
+    div.innerHTML = `
+        <div class="col-5">
+            <input type="text" class="form-control form-control-sm spec-input" name="spec_keys[]" placeholder="Detail">
+        </div>
+        <div class="col-5">
+            <input type="text" class="form-control form-control-sm spec-input" name="spec_values[]" placeholder="Value">
+        </div>
+        <div class="col-2">
+            <button type="button" class="remove-btn"
+                onclick="this.parentElement.parentElement.remove()">✕</button>
+        </div>
+    `;
+
+    container.appendChild(div);
+}
 
     // Open Edit Modal & Populate Data
     function openQuickUpdateModal(row) {
