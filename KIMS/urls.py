@@ -29,6 +29,8 @@ urlpatterns = [
 
     # --- ADD TRANSACTION ---
     path('room/<int:room_id>/item/<int:item_id>/add_transaction/', views.add_transaction, name='add_transaction'),
+
+
 ]
 
 if settings.DEBUG:
