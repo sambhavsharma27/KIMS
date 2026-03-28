@@ -7,15 +7,15 @@
         <a href="{% url 'select_building' current_location.id %}" class="btn btn-primary me-3 shadow-sm fw-bold">
             🚶‍♂️ Virtual Visit (Manage Rooms)
         </a>
-        <button class="btn btn-success me-2 shadow-sm">📥 Export to Excel</button>
-        <button class="btn btn-danger shadow-sm">📄 Export to PDF</button>
-    </div>
+        <button id="exportExcelBtn" class="btn btn-success me-2 shadow-sm">📥 Export to Excel</button>
+        <button id="exportPdfBtn" class="btn btn-danger shadow-sm">📄 Export to PDF</button>
+        </div>
 </div>
 
 <div class="card shadow-sm mb-4 border-0 bg-light">
     <div class="card-body">
         <form method="GET" action="" id="filterForm">
-            
+
             <h6 class="text-muted mb-3">📍 Location Filters</h6>
             <div class="row mb-3">
                 <div class="col-md-3">
@@ -92,15 +92,18 @@
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+            <table id="liveStockTable" class="table table-hover align-middle mb-0 bg-white">
+            <thead class="table-light">
                     <tr>
                         <th class="px-4 py-3">Image</th>
-                        <th class="py-3">Item Details</th>
-                        <th class="text-center py-3 text-success">Total Received</th>
-                        <th class="text-center py-3 text-danger">Damaged/Lost</th>
-                        <th class="text-center py-3 text-warning">Transferred Out</th>
-                        <th class="text-center py-3 bg-light fs-6 text-primary border-start">Live Balance</th>
+                        <th class="py-3 text-center">Item Name</th>
+                        <th class="py-3">Make / Brand</th>
+                        <th class="py-3">Color</th>
+
+                        <th class="text-center py-3" style="cursor: pointer; user-select: none;" onclick="sortTableByDate()" title="Click to sort by date">
+                            Received On
+                        </th>
+                        <th class="text-center py-3 bg-light border-start">Balance</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -115,19 +118,21 @@
                                 </div>
                             {% endif %}
                         </td>
-                        <td class="py-3">
+                        <td class="py-3 text-center">
                             <strong class="fs-6">{{ item.name }}</strong>
-                            {% if item.brand %}<br><small class="text-muted">{{ item.brand }}</small>{% endif %}
                             <br>
                             <span class="badge bg-secondary mt-1">{{ item.category.name|default:"Uncategorized" }}</span>
-                            {% if item.colour %}
-                                <span class="badge bg-light text-dark border">{{ item.colour }}</span>
-                            {% endif %}
                         </td>
-                        <td class="text-center fw-bold text-success fs-5">+{{ item.total_received }}</td>
-                        <td class="text-center fw-bold text-danger fs-5">-{{ item.total_damaged }}</td>
-                        <td class="text-center fw-bold text-warning fs-5">-{{ item.total_transferred }}</td>
-                        <td class="text-center fw-bold bg-light fs-4 text-primary border-start">
+                        <td class="py-3 text-dark">
+                            {{ item.brand|default:"-" }}
+                        </td>
+                        <td class="py-3 text-dark">
+                            {{ item.colour|default:"-" }}
+                        </td>
+                        <td class="text-center py-3 text-muted">
+                            {{ item.created_at|date:"d.m.Y" }}
+                        </td>
+                        <td class="text-center fw-bold bg-light border-start">
                             {{ item.current_stock }}
                         </td>
                     </tr>
@@ -162,7 +167,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for txn in transactions %}
+                    {% for txn in transactions|slice:":10" %}
                     <tr>
                         <td class="fw-bold text-muted px-4">{{ txn.date_recorded|date:"M d, Y" }}</td>
                         <td>
@@ -207,12 +212,68 @@
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <script>
+    // Date wise sorting logic(Descending)
+    document.addEventListener("DOMContentLoaded", function() {
+        const table = document.getElementById("liveStockTable");
+        if(table) {
+            const tbody = table.querySelector("tbody");
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+
+            rows.sort((a, b) => {
+                if (a.cells.length < 5 || b.cells.length < 5) return 0;
+
+                const dateA_text = a.cells[4].innerText.trim();
+                const dateB_text = b.cells[4].innerText.trim();
+
+                const timeA = parseDateToTime(dateA_text);
+                const timeB = parseDateToTime(dateB_text);
+
+                return timeB - timeA; // Descending order
+            });
+
+            rows.forEach(row => tbody.appendChild(row));
+        }
+    });
+
+    function parseDateToTime(dateStr) {
+        if (!dateStr || dateStr === "-") return 0;
+        const parts = dateStr.split('.');
+        if (parts.length === 3) {
+            return new Date(parts[2], parts[1] - 1, parts[0]).getTime();
+        }
+        return 0;
+    }
+
+    // --- Frontend Excel Logic (Seedha HTML table scrape karega) ---
+    document.getElementById('exportExcelBtn').addEventListener('click', function() {
+        var table = document.getElementById("liveStockTable");
+        var wb = XLSX.utils.table_to_book(table, {sheet: "Live Stock"});
+        XLSX.writeFile(wb, "KIMS_Live_Stock.xlsx");
+    });
+
+    // --- Export to PDF Logic ---
+    document.getElementById('exportPdfBtn').addEventListener('click', function() {
+        var element = document.getElementById('liveStockTable');
+        var opt = {
+            margin:       0.2,
+            filename:     'KIMS_Live_Stock.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+        html2pdf().set(opt).from(element).save();
+    });
+
+    // --- Existing Dropdown Filter Logic ---
     document.addEventListener("DOMContentLoaded", function() {
         const buildingSelect = document.getElementById('buildingSelect');
         const floorSelect = document.getElementById('floorSelect');
         const roomSelect = document.getElementById('roomSelect');
-        
+
         const allFloors = Array.from(floorSelect.options);
         const allRooms = Array.from(roomSelect.options);
 
@@ -241,7 +302,7 @@
         }
 
         buildingSelect.addEventListener('change', function() {
-            floorSelect.value = ""; 
+            floorSelect.value = "";
             roomSelect.value = "";
             filterSpatialDropdowns();
         });
@@ -252,7 +313,7 @@
         });
 
         filterSpatialDropdowns();
-        
+
         const urlParams = new URLSearchParams(window.location.search);
         if(urlParams.get('floor')) floorSelect.value = urlParams.get('floor');
         if(urlParams.get('room')) roomSelect.value = urlParams.get('room');
