@@ -610,5 +610,12 @@
         document.getElementById('expandedImg').src = url;
         new bootstrap.Modal(document.getElementById('imageExpandModal')).show();
     }
+    
+    // Add item receive on conflicts 
+    const receivedOnInput = document.getElementById('receivedOnDate');
+    if (receivedOnInput) {
+        const today = new Date().toISOString().split('T')[0];
+        receivedOnInput.setAttribute('max', today);
+    }
 </script>
 {% endblock %}
