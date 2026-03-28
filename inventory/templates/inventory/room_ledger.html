@@ -69,6 +69,9 @@
                             data-item-brand="{{ item.brand|default:'' }}"
                             data-item-colour="{{ item.colour|default:'' }}"
                             data-item-remarks="{{ item.remarks|default:'' }}"
+                            data-item-received="{{ item.total_received|default:'0' }}"
+                            data-item-damaged="{{ item.total_damaged|default:'0' }}"
+                            data-item-transferred="{{ item.total_transferred|default:'0' }}"
                             data-item-img="{% if item.catalog_image %}{{ item.catalog_image.url }}{% else %}none{% endif %}">
 
                             <td class="text-center py-2" style="width: 100px;">
@@ -104,23 +107,6 @@
                                 <a href="javascript:void(0);" class="text-primary text-decoration-none balance-link d-block w-100" onclick="openTransactionModal(this.closest('tr'))">
                                     {{ item.current_stock|default:"0" }}
                                 </a>
-
-                                <div id="tx-html-{{ item.id }}" class="d-none">
-                                    {% for tx in item.transactions.all %}
-                                    <tr>
-                                        <td>{{ tx.date|date:"d-m-Y" }}</td>
-                                        <td>
-                                            {% if tx.transaction_type == 'received' %}<span class="badge bg-success">Received</span>
-                                            {% elif tx.transaction_type == 'transfer_out' %}<span class="badge bg-warning text-dark">Transfer Out</span>
-                                            {% elif tx.transaction_type == 'damage_broken' %}<span class="badge bg-danger">Damage/Broken</span>
-                                            {% else %}<span class="badge bg-secondary">{{ tx.transaction_type }}</span>{% endif %}
-                                        </td>
-                                        <td class="fw-bold {% if tx.transaction_type == 'received' %}text-success{% else %}text-danger{% endif %}">
-                                            {% if tx.transaction_type == 'received' %}+{% else %}-{% endif %}{{ tx.quantity }}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </div>
                             </td>
                         </tr>
                         {% empty %}
@@ -162,14 +148,14 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Category</label>
+                            <label class="form-label fw-bold small">Category*</label>
                             <select class="form-select border-dark shadow-sm" name="category" required>
                                 <option value="">-- Select --</option>
                                 {% for cat in categories %} <option value="{{ cat.id }}">{{ cat.name }}</option> {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Item Name</label>
+                            <label class="form-label fw-bold small">Item Name*</label>
                             <input type="text" class="form-control border-dark shadow-sm" name="item_name" required>
                         </div>
                     </div>
@@ -185,12 +171,12 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Quantity</label>
+                            <label class="form-label fw-bold small">Quantity*</label>
                             <input type="number" class="form-control border-dark shadow-sm" name="quantity" min="1" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Received On</label>
-                            <input type="date" class="form-control border-dark shadow-sm" name="received_on">
+                            <label class="form-label fw-bold small">Received On*</label>
+                            <input type="date" class="form-control border-dark shadow-sm" name="received_on" required>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -199,8 +185,8 @@
                         <button type="button" class="btn btn-outline-primary btn-sm w-100 shadow-sm" onclick="addSpecRow('specs-container')">+ Add Detail</button>
                     </div>
                     <div class="mb-3 mt-3">
-                        <label class="form-label fw-bold small">Remarks</label>
-                        <textarea class="form-control border-dark shadow-sm" name="remarks" rows="2" placeholder="Enter remarks..."></textarea>
+                        <label class="form-label fw-bold small">Remarks*</label>
+                        <textarea class="form-control border-dark shadow-sm" name="remarks" rows="2" placeholder="Enter remarks..." required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer bg-light"><button type="submit" class="btn btn-success fw-bold px-4">Save Item</button></div>
@@ -221,7 +207,7 @@
                 <div class="modal-body bg-light p-4">
                     <div class="row">
                         <div class="col-md-4 text-center border-end">
-                            <label class="form-label fw-bold small text-primary">Item Image</label>
+                            <label class="form-label fw-bold small text-primary"></label>
                             <div class="d-inline-block position-relative">
                                 <input type="file" class="d-none" name="catalog_image" id="editItemImageInput" accept="image/*" onchange="previewImage(this, 'edit-image-element', 'editUploadPlaceholder', 'editImagePreviewWrapper', 'editRemoveBtn')">
                                 <label for="editItemImageInput" class="custom-file-upload">
@@ -262,8 +248,8 @@
                             </button>
 
                             <div class="mb-3 mt-3">
-                                <label class="form-label fw-bold small">Remarks</label>
-                                <textarea class="form-control border-dark shadow-sm" name="remarks" id="edit_item_remarks" rows="2" placeholder="Enter remarks..."></textarea>
+                                <label class="form-label fw-bold small">Remarks*</label>
+                                <textarea class="form-control border-dark shadow-sm" name="remarks" id="edit_item_remarks" rows="2" placeholder="Enter remarks..." required></textarea>
                             </div>
                         </div>
                     </div>
@@ -279,56 +265,73 @@
 
 <div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">📉 Manage Stock: <span id="txItemName" class="fw-bold"></span></h5>
+        <div class="modal-content border-0 shadow-lg overflow-hidden">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">📦 Item Details & Update</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body bg-light p-4">
 
-                <form id="addTransactionForm" method="POST" action="">
-                    {% csrf_token %}
-                    <div class="row mb-3 align-items-end">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold small">Transaction Type</label>
-                            <select class="form-select border-dark shadow-sm" name="transaction_type" id="txTypeSelect" onchange="validateQuantity()" required>
-                                <option value="" disabled selected>-- Select Type --</option>
-                                <option value="received">Received (+)</option>
-                                <option value="transfer_out">Transfer Out (-)</option>
-                                <option value="damage_broken">Damage / Broken (-)</option>
-                            </select>
+            <div class="modal-body p-0">
+                <div class="row g-0">
+
+                    <div class="col-md-6 p-4 bg-white border-end d-flex flex-column justify-content-center">
+                        <div class="text-center mb-4 mt-2">
+                            <img id="txItemImage" src="" alt="Item Image" class="img-fluid rounded shadow-sm mb-3" style="max-height: 120px; object-fit: contain; display: none;">
+
+                            <h2 id="txItemName" class="text-primary fw-bold mb-1" style="font-size: 2rem;"></h2>
+                            <span class="text-muted small">Brand: <span id="txItemBrand" class="fw-bold"></span></span>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold small">Quantity <span id="txStockLabel" class="badge bg-light text-primary ms-1"></span></label>
-                            <input type="number" class="form-control border-dark shadow-sm" name="transaction_quantity" id="txQuantityInput" min="1" oninput="validateQuantity()" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold small">Date</label>
-                            <input type="date" class="form-control border-dark shadow-sm" name="transaction_date" required>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-success w-100 fw-bold shadow-sm">Submit</button>
+
+                        <div class="d-flex justify-content-between text-center gap-2 mb-4">
+                            <div class="border rounded p-2 w-100 shadow-sm">
+                                <small class="text-muted d-block" style="font-size: 0.8rem;">Received</small>
+                                <span class="fs-4 text-success fw-bold" id="txStatReceived">0</span>
+                            </div>
+                            <div class="border rounded p-2 w-100 shadow-sm">
+                                <small class="text-muted d-block" style="font-size: 0.8rem;">Damaged</small>
+                                <span class="fs-4 text-danger fw-bold" id="txStatDamaged">0</span>
+                            </div>
+                            <div class="border rounded p-2 w-100 shadow-sm">
+                                <small class="text-muted d-block" style="font-size: 0.8rem;">Transferred</small>
+                                <span class="fs-4 text-warning fw-bold" id="txStatTransferred">0</span>
+                            </div>
                         </div>
                     </div>
-                </form>
 
-                <hr class="my-4 text-muted">
+                    <div class="col-md-6 p-4 bg-white">
+                        <form id="addTransactionForm" method="POST" action="">
+                            {% csrf_token %}
 
-                <h6 class="fw-bold mb-3 text-secondary">Recent Transactions</h6>
-                <div class="table-responsive bg-white border rounded shadow-sm" style="max-height: 250px; overflow-y: auto;">
-                    <table class="table table-sm table-hover table-bordered text-center align-middle mb-0">
-                        <thead class="table-light sticky-top">
-                            <tr>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Quantity Changed</th>
-                            </tr>
-                        </thead>
-                        <tbody id="txHistoryBody">
-                        </tbody>
-                    </table>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-dark small mb-1">What happened?</label>
+                                <select class="form-select border-dark shadow-sm" name="transaction_type" id="txTypeSelect" onchange="validateQuantity()" required>
+                                    <option value="" disabled selected>-- Select --</option>
+                                    <option value="received">🟢 Received More (+)</option>
+                                    <option value="damage_broken">🔴 Damaged (-)</option>
+                                    <option value="transfer_out">🟡 Transferred Out (-)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-dark small mb-1">How many? <span id="txStockLabel" class="badge bg-light text-primary ms-1"></span></label>
+                                <input type="number" class="form-control border-dark shadow-sm" name="transaction_quantity" id="txQuantityInput" min="1" oninput="validateQuantity()" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-dark small mb-1">Date</label>
+                                <input type="date" class="form-control border-dark shadow-sm" name="transaction_date" required>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold text-dark small mb-1">Remarks*</label>
+                                <input type="text" class="form-control border-dark shadow-sm" name="remarks" placeholder="e.g. Dropped while cleaning" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 btn-lg fw-bold shadow-sm" style="font-size: 1.1rem;">Save Update</button>
+                        </form>
+                    </div>
+
                 </div>
-
             </div>
         </div>
     </div>
@@ -427,14 +430,30 @@
         new bootstrap.Modal(document.getElementById('quickUpdateModal')).show();
     }
 
-    // Open Transaction Modal
+    // Open Redesigned Transaction Modal
     function openTransactionModal(row) {
         const id = row.getAttribute('data-item-id');
         const name = row.getAttribute('data-item-name');
-        const stock = row.getAttribute('data-item-stock') || 0; // Grab the current stock
+        const brand = row.getAttribute('data-item-brand') || '-';
+        const stock = row.getAttribute('data-item-stock') || 0;
+        const img = row.getAttribute('data-item-img'); // Grab image from row
 
-        // Set Modal Title
+        // Populate the Left Panel (Stats & Info)
         document.getElementById('txItemName').innerText = name;
+        document.getElementById('txItemBrand').innerText = brand;
+        document.getElementById('txStatReceived').innerText = row.getAttribute('data-item-received') || '0';
+        document.getElementById('txStatDamaged').innerText = row.getAttribute('data-item-damaged') || '0';
+        document.getElementById('txStatTransferred').innerText = row.getAttribute('data-item-transferred') || '0';
+
+        // Display Image if it exists
+        const txImgElement = document.getElementById('txItemImage');
+        if (img && img !== 'none') {
+            txImgElement.src = img;
+            txImgElement.style.display = 'inline-block';
+        } else {
+            txImgElement.src = '';
+            txImgElement.style.display = 'none';
+        }
 
         // Set Form Action URL
         document.getElementById('addTransactionForm').action = `/room/{{ room.id }}/item/${id}/add_transaction/`;
@@ -445,20 +464,9 @@
 
         typeSelect.value = "";
         qtyInput.value = "";
-        qtyInput.dataset.currentStock = stock; // Store stock secretly in input dataset
+        qtyInput.dataset.currentStock = stock;
 
-        // Initialize Validation
         validateQuantity();
-
-        // Fetch and load transaction history
-        const historySource = document.getElementById('tx-html-' + id);
-        const historyBody = document.getElementById('txHistoryBody');
-
-        if (historySource && historySource.innerHTML.trim() !== "") {
-            historyBody.innerHTML = historySource.innerHTML;
-        } else {
-            historyBody.innerHTML = '<tr><td colspan="3" class="text-muted py-4">No transactions recorded yet.</td></tr>';
-        }
 
         // Show the Modal
         new bootstrap.Modal(document.getElementById('transactionModal')).show();
@@ -476,17 +484,14 @@
 
         // If the user selects a deduction type...
         if (typeSelect === 'transfer_out' || typeSelect === 'damage_broken') {
-            // Force the HTML Max attribute to current stock
             qtyInput.max = currentStock;
             stockLabel.classList.remove('text-primary');
             stockLabel.classList.add('text-danger');
 
-            // Auto-correct if they typed something too high before changing the select dropdown
             if (parseInt(qtyInput.value) > currentStock) {
                 qtyInput.value = currentStock;
             }
         } else {
-            // Remove the Max restriction if they are adding stock
             qtyInput.removeAttribute('max');
             stockLabel.classList.remove('text-danger');
             stockLabel.classList.add('text-primary');

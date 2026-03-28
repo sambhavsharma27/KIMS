@@ -244,6 +244,9 @@ def add_transaction(request, room_id, item_id):
         tx_quantity = int(request.POST.get('transaction_quantity', 0))
         tx_date = request.POST.get('transaction_date')
 
+        # 1. Grab the remarks from the mandatory HTML input
+        tx_remarks = request.POST.get('remarks')
+
         # Map HTML form string values to Database choices
         type_mapping = {
             'received': 'RECEIPT',
@@ -260,7 +263,7 @@ def add_transaction(request, room_id, item_id):
             transaction_type=db_tx_type,
             quantity=tx_quantity,
             date_recorded=tx_date if tx_date else timezone.now().date(),
-            remarks=f"Manual update: {raw_tx_type}"
+            remarks=tx_remarks  # 2. Save the captured remarks to the database
         )
 
         messages.success(request, f"Stock transaction recorded successfully for {item.name}.")
