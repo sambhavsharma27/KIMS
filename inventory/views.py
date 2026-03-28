@@ -89,19 +89,22 @@ def add_new_item_from_modal_view(request, room_id):
     if request.method == 'POST':
         category_id = request.POST.get('category')
         item_name = request.POST.get('item_name').strip().title()
-        item_brand = request.POST.get('item_brand', '').strip().title()
-        item_colour = request.POST.get('item_colour', '').strip().title()
 
-        # Capture the new quantity, date, and remarks from the form
+        # Capture the new quantity, date, remarks, and received_from from the form
         quantity = int(request.POST.get('quantity', 1))
         received_on = request.POST.get('received_on')
         remarks = request.POST.get('remarks', 'Initial stock entry.')
+        received_from = request.POST.get('received_from', '').strip().title()
         catalog_image = request.FILES.get('catalog_image')
 
-        # Handle Dynamic Specs
+        # Handle Dynamic Specs (Brand & Colour now come as the first two spec rows)
         keys = request.POST.getlist('spec_keys[]')
         values = request.POST.getlist('spec_values[]')
         specs = {k.strip().title(): v.strip().title() for k, v in zip(keys, values) if k.strip()}
+
+        # Extract Brand and Colour from specs to save in dedicated model fields
+        item_brand = specs.pop('Brand', '')
+        item_colour = specs.pop('Colour', '')
 
         new_item = Item.objects.create(
             name=item_name,
@@ -119,7 +122,7 @@ def add_new_item_from_modal_view(request, room_id):
             transaction_type='RECEIPT',
             quantity=quantity,
             remarks=remarks,
-            # Use the provided date, or fallback to today if left blank
+            received_from=received_from,
             date_recorded=received_on if received_on else timezone.now().date()
         )
 
