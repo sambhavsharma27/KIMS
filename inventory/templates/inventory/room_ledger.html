@@ -125,9 +125,14 @@
         <h2 class="mb-0">{{ room.name }} <span class="text-muted fs-4">Ledger</span></h2>
         <small class="text-muted fw-bold">📍 {{ location.name }} &rarr; {{ building.name }} &rarr; {{ floor.name }}</small>
     </div>
-    <button type="button" class="btn btn-success shadow-sm btn-lg fw-bold border-dark" data-bs-toggle="modal" data-bs-target="#addNewItemModal">
-        ➕ Add New Item
-    </button>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-primary shadow-sm btn-lg fw-bold border-dark" onclick="filterHistory('all')">
+            📜 See Transaction History
+        </button>
+        <button type="button" class="btn btn-success shadow-sm btn-lg fw-bold border-dark" data-bs-toggle="modal" data-bs-target="#addNewItemModal">
+            ➕ Add Brand New Item
+        </button>
+    </div>
 </div>
 
 <div class="row">
@@ -182,19 +187,24 @@
                                 </div>
                             </td>
 
-                            <td class="text-center align-middle">
-                                <a href="javascript:void(0);" class="text-primary fw-bold text-decoration-none item-name-link" onclick="openQuickUpdateModal(this.closest('tr'))">{{ item.name }}</a><br>
+                            <td class="text-center align-middle" style="cursor: pointer;" onclick="openQuickUpdateModal(this.closest('tr'))">
+                                <span class="text-primary fw-bold item-name-link">{{ item.name }}</span><br>
                                 <span class="badge bg-secondary">{{ item.category.name|default:"Uncategorized" }}</span>
                             </td>
 
                             <td class="text-center align-middle">{{ item.brand|default:"-" }}</td>
                             <td class="text-center align-middle">{{ item.colour|default:"-" }}</td>
-                            <td class="text-center align-middle small">{{ item.latest_transaction_date|date:"d.m.Y"|default:"-" }}</td>
 
-                            <td class="text-center align-middle fw-bold bg-light" style="font-size: 1.2rem;">
-                                <a href="javascript:void(0);" class="text-primary text-decoration-none balance-link d-block w-100" onclick="openTransactionModal(this.closest('tr'))">
+                            <td class="text-center align-middle small" style="cursor: pointer;" onclick="filterHistory('{{ item.name|escapejs }}')">
+                                <span class="text-primary fw-bold item-name-link">
+                                    {{ item.latest_transaction_date|date:"d.m.Y"|default:"-" }}
+                                </span>
+                            </td>
+
+                            <td class="text-center align-middle fw-bold bg-light" style="font-size: 1.2rem; cursor: pointer;" onclick="openTransactionModal(this.closest('tr'))">
+                                <span class="text-primary balance-link d-block w-100">
                                     {{ item.current_stock|default:"0" }}
-                                </a>
+                                </span>
                             </td>
                         </tr>
                         {% empty %}
@@ -459,6 +469,58 @@
     </div>
 </div>
 
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">📜 Transaction History - {{ room.name }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark text-center sticky-top">
+                        <tr>
+                            <th>Date</th>
+                            <th>Item Name</th>
+                            <th>Transaction Type</th>
+                            <th>Qty</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-center">
+                        {% for tx in room_transactions %}
+                        <tr>
+                            <td class="small">{{ tx.transaction_date|date:"d.m.Y" }}</td>
+                            <td class="fw-bold text-primary">{{ tx.item.name }}</td>
+                            <td>
+                                {% if tx.transaction_type == 'RECEIPT' %}
+                                    <span class="badge bg-success">Received</span>
+                                {% elif tx.transaction_type == 'TRANSFER' %}
+                                    <span class="badge bg-warning text-dark">Transferred</span>
+                                {% elif tx.transaction_type == 'DAMAGE' %}
+                                    <span class="badge bg-danger">Damaged</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ tx.transaction_type }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold">{{ tx.quantity }}</td>
+                            <td class="text-muted small">{{ tx.remarks|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">No transactions recorded yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // Unified Preview Logic
     function previewImage(input, imgId, placeholderId, wrapperId, btnId) {
@@ -623,6 +685,65 @@
     function openImagePreview(url) {
         document.getElementById('expandedImg').src = url;
         new bootstrap.Modal(document.getElementById('imageExpandModal')).show();
+    }
+
+    // NEW FUNCTION: Open History Modal and filter by item
+    function filterHistory(itemName) {
+        const title = document.querySelector('#historyModal .modal-title');
+        const rows = document.querySelectorAll('#historyModal tbody tr');
+
+        if (itemName === 'all') {
+            title.innerText = '📜 Transaction History - {{ room.name }}';
+            rows.forEach(row => row.style.display = '');
+        } else {
+            title.innerText = '📜 Transaction History - ' + itemName;
+            rows.forEach(row => {
+                // If it's a data row with columns
+                if (row.cells.length > 1) {
+                    if (row.cells[1].innerText.trim() === itemName) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        let historyModal = bootstrap.Modal.getInstance(document.getElementById('historyModal'));
+        if (!historyModal) {
+            historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+        }
+        historyModal.show();
+    }
+    //Sorting based of receiving date
+    document.addEventListener("DOMContentLoaded", function() {
+        const tbody = document.querySelector(".table-hover tbody");
+        if(tbody) {
+            const rows = Array.from(tbody.querySelectorAll("tr.item-row"));
+
+            rows.sort((a, b) => {
+                if (a.cells.length < 5 || b.cells.length < 5) return 0;
+
+                const dateA_text = a.cells[4].innerText.trim();
+                const dateB_text = b.cells[4].innerText.trim();
+
+                const timeA = parseDateToTime(dateA_text);
+                const timeB = parseDateToTime(dateB_text);
+
+                return timeB - timeA; // Descending order (Nayi date upar)
+            });
+
+            rows.forEach(row => tbody.appendChild(row));
+        }
+    });
+
+    function parseDateToTime(dateStr) {
+        if (!dateStr || dateStr === "-") return 0;
+        const parts = dateStr.split('.');
+        if (parts.length === 3) {
+            return new Date(parts[2], parts[1] - 1, parts[0]).getTime();
+        }
+        return 0;
     }
 </script>
 {% endblock %}

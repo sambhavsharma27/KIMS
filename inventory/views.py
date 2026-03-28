@@ -152,10 +152,15 @@ def room_ledger(request, room_id):
     ).annotate(current_stock=F('total_received') - F('total_damaged') - F('total_transferred')).order_by(
         '-current_stock')
 
+    # ADDED: Fetch the transaction history for this specific room
+    room_transactions = InventoryTransaction.objects.filter(room=room).select_related('item').annotate(
+        transaction_date=F('date_recorded')
+    ).order_by('-date_recorded')
+
     context = {
         'room': room, 'location': room.floor.building.location, 'building': room.floor.building,
         'floor': room.floor, 'live_items': live_items, 'categories': Category.objects.all(),
-        'locations': Location.objects.filter(is_active=True),
+        'room_transactions': room_transactions, # ADDED: Passed to the template
     }
     return render(request, 'inventory/room_ledger.html', context)
 
