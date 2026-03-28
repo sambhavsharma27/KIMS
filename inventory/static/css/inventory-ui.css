@@ -1,0 +1,79 @@
+
+   /* ===== Custom Specifications UI Fix ===== */
+
+.spec-input {
+    border: none !important;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.spec-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(13,110,253,0.15);
+    background: #fff;
+}
+
+/* Small Red Remove Button */
+.remove-btn {
+    background: #dc3545;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    font-size: 12px;
+    padding: 2px 6px;
+    height: 28px;
+    width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-btn:hover {
+    background: #bb2d3b;
+}
+
+/* Smaller Add Button */
+.add-spec-btn {
+    font-size: 13px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px dashed #0d6efd;
+    background: #f0f6ff;
+    color: #0d6efd;
+}
+
+.add-spec-btn:hover {
+    background: #e7f1ff;
+}
+
+/* Reduce spacing */
+.spec-row {
+    margin-bottom: 6px !important;
+}
+/* ===== Remarks Styling ===== */
+
+.remarks-input {
+    border: none !important;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    resize: none; /* optional: remove drag resize */
+}
+
+.remarks-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(13,110,253,0.15);
+    background: #fff;
+}
+/* Top Form Fields - Black Border */
+.modern-input {
+    border: 1px solid #000 !important;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    background: #fff;
+}
+
