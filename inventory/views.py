@@ -93,7 +93,8 @@ def add_new_item_from_modal_view(request, room_id):
         # Capture the new quantity, date, remarks, and received_from from the form
         quantity = int(request.POST.get('quantity', 1))
         received_on = request.POST.get('received_on')
-        remarks = request.POST.get('remarks', 'Initial stock entry.')
+        item_remarks = request.POST.get('remarks', '').strip()
+        tx_remarks = 'Initial stock entry.'
         received_from = request.POST.get('received_from', '').strip().title()
         catalog_image = request.FILES.get('catalog_image')
 
@@ -112,7 +113,8 @@ def add_new_item_from_modal_view(request, room_id):
             brand=item_brand,
             colour=item_colour,
             specifications=specs,
-            catalog_image=catalog_image
+            catalog_image=catalog_image,
+            remarks=item_remarks
         )
 
         # Create the initial receipt transaction
@@ -121,7 +123,7 @@ def add_new_item_from_modal_view(request, room_id):
             room=room,
             transaction_type='RECEIPT',
             quantity=quantity,
-            remarks=remarks,
+            remarks=tx_remarks,
             received_from=received_from,
             date_recorded=received_on if received_on else timezone.now().date()
         )
@@ -173,7 +175,7 @@ def update_item_info(request, room_id, item_id):
         item.brand = request.POST.get('item_brand', '').strip().title()
         item.model = request.POST.get('item_model', '').strip().title()
         item.colour = request.POST.get('item_colour', '').strip().title()
-
+        item.remarks = request.POST.get('remarks', '').strip()
         # Handle Specifications
         keys = request.POST.getlist('spec_keys[]')
         values = request.POST.getlist('spec_values[]')
